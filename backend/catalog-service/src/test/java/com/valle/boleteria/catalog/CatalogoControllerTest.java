@@ -202,9 +202,9 @@ class CatalogoControllerTest {
         long partidoId = crearPartidoAdmin("Rival Cupos", LocalDate.now().plusDays(15));
         long localidadId = crearLocalidadAdmin(partidoId, "Platea", 10000, 2);
 
-        // Cualquier rol autenticado puede reservar (así actúa sales-service)
+        // El servicio de ventas es el ÚNICO que puede reservar (rol SERVICE)
         mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
-                        .header("Authorization", header("user@prueba", "USER"))
+                        .header("Authorization", servicio())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"cantidad\":1}"))
                 .andExpect(status().isOk())
@@ -215,7 +215,7 @@ class CatalogoControllerTest {
 
         // Segunda reserva agota el cupo
         mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
-                        .header("Authorization", header("user@prueba", "USER"))
+                        .header("Authorization", servicio())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"cantidad\":1}"))
                 .andExpect(status().isOk())
@@ -224,7 +224,7 @@ class CatalogoControllerTest {
 
         // Tercera → 409 con el cuerpo ApiError estándar
         mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
-                        .header("Authorization", header("user@prueba", "USER"))
+                        .header("Authorization", servicio())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"cantidad\":1}"))
                 .andExpect(status().isConflict())
@@ -234,7 +234,7 @@ class CatalogoControllerTest {
 
         // Liberar con más cantidad de la vendida: piso en 0 (nunca negativo)
         mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/liberar")
-                        .header("Authorization", header("user@prueba", "USER"))
+                        .header("Authorization", servicio())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"cantidad\":5}"))
                 .andExpect(status().isOk())
@@ -249,7 +249,7 @@ class CatalogoControllerTest {
 
         // Se venden las 5 entradas
         mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
-                        .header("Authorization", admin())
+                        .header("Authorization", servicio())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"cantidad\":5}"))
                 .andExpect(status().isOk())
@@ -289,6 +289,85 @@ class CatalogoControllerTest {
                 .andExpect(jsonPath("$.vendidos").value(0));
     }
 
+    @Test
+    void reservarYLiberarSoloLosPuedeLlamarElServicioDeVentas() throws Exception {
+        long partidoId = crearPartidoAdmin("Rival Interno", LocalDate.now().plusDays(18));
+        long localidadId = crearLocalidadAdmin(partidoId, "Interna", 10000, 2);
+
+        // Un USER con su propio JWT ya NO puede mover el inventario
+        mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
+                        .header("Authorization", header("user@prueba", "USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        // Ni siquiera un ADMIN: el inventario es competencia del servicio de ventas
+        mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/liberar")
+                        .header("Authorization", admin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        // Token sin claim de rol → 401 (no queda autenticado como ROLE_null)
+        mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
+                        .header("Authorization", header("sin-rol@prueba", ""))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1}"))
+                .andExpect(status().isUnauthorized());
+
+        // Los intentos rechazados NO tocaron el cupo
+        mockMvc.perform(get("/api/catalog/localidades/" + localidadId))
+                .andExpect(jsonPath("$.vendidos").value(0));
+
+        // El servicio de ventas sí puede reservar
+        mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
+                        .header("Authorization", servicio())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vendidos").value(1))
+                .andExpect(jsonPath("$.disponibles").value(1));
+    }
+
+    @Test
+    void crearPartidoSinHoraNiEscenarioEs400() throws Exception {
+        // El DTO exige hora y escenario: sin ellos no se puede crear un partido "vacío"
+        mockMvc.perform(post("/api/catalog/partidos")
+                        .header("Authorization", admin())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"rival\":\"Incompleto\",\"fecha\":\"%s\"}"
+                                .formatted(LocalDate.now().plusDays(19))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void unPartidoCanceladoNoAdmiteReservarCupo() throws Exception {
+        long partidoId = crearPartidoAdmin("Rival Cancelado", LocalDate.now().plusDays(20));
+        long localidadId = crearLocalidadAdmin(partidoId, "General", 10000, 5);
+
+        // Cancelación lógica del partido (ADMIN)
+        mockMvc.perform(put("/api/catalog/partidos/" + partidoId + "/cancelar")
+                        .header("Authorization", admin()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.estado").value("CANCELADO"));
+
+        // El servicio de ventas ya no puede tomar cupo de ese partido
+        mockMvc.perform(post("/api/catalog/localidades/" + localidadId + "/reservar")
+                        .header("Authorization", servicio())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"cantidad\":1}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.message", Matchers.containsString("no admite compra")));
+
+        // El inventario quedó intacto
+        mockMvc.perform(get("/api/catalog/localidades/" + localidadId))
+                .andExpect(jsonPath("$.vendidos").value(0));
+    }
+
     // ----------------------------------------------------------------- utils
 
     private String token(String email, String rol) {
@@ -301,6 +380,11 @@ class CatalogoControllerTest {
 
     private String admin() {
         return header("admin@prueba", "ADMIN");
+    }
+
+    /** Token corto de servicio: el único que puede tocar el inventario. */
+    private String servicio() {
+        return header("sales-service", "SERVICE");
     }
 
     private Partido partidoPorRival(String rival) {

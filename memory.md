@@ -26,7 +26,7 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 | Inventario (cupo/vendidos) vive en `catalog` | Dueño de la localidad; el listado público muestra disponibilidad sin llamadas cruzadas; el admin edita cupo en un solo servicio |
 | Concurrencia: `UPDATE ... WHERE vendidos + :qty <= cupo` + `CHECK` en BD | Correcto, sin locks largos; alternativas (optimista/pesimista) solo se EXPLICAN en el README |
 | `RestClient` sales → catalog (sin Spring Cloud/Feign) | Viene en Spring Boot 3, cero dependencias extra |
-| JWT propagado: sales reenvía la cabecera Authorization del usuario a catalog | La autorización se valida en el backend de cada servicio, sin tokens de servicio |
+| **Identidad de servicio** (reabierta en el review): sales firma un token corto (`rol=SERVICE`, 60 s) para catalog | Reenviar el JWT del usuario permitía a cualquier USER llamar `/reservar` y `/liberar`: podía inflar la disponibilidad o agotar el cupo sin comprar. Catalog exige `SERVICE` SOLO en esos dos endpoints; un usuario nunca tiene ese rol |
 | Naming en español (partidos, localidades, reservas, entradas) | El documento de la prueba está en español; `match` es palabra SQL |
 | Cancelar partido = lógico (`estado CANCELADO`), nunca DELETE | Permite reportar ventas históricas |
 | Datos de ejemplo vía migraciones Flyway V2 de cada servicio | Requisito de "migraciones + datos de ejemplo" y siempre disponibles |
@@ -44,8 +44,8 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 - GET `/api/catalog/partidos?fecha=&estado=` público → partidos con localidades `{id,nombre,precio,cupo,vendidos,disponibles}`
 - GET `/api/catalog/partidos/{id}` público · GET `/api/catalog/localidades/{id}` público → `LocalidadInfo`
 - POST/PUT `/api/catalog/partidos...` ADMIN (`hasRole`) · PUT `.../cancelar` ADMIN
-- POST `/api/catalog/localidades/{id}/reservar` authenticated → `CupoResponse` o **409 sin cupo**
-- POST `/api/catalog/localidades/{id}/liberar` authenticated → `CupoResponse`
+- POST `/api/catalog/localidades/{id}/reservar` **rol SERVICE** → `CupoResponse` o **409 sin cupo** (o partido no PROGRAMADO)
+- POST `/api/catalog/localidades/{id}/liberar` **rol SERVICE** → `CupoResponse`
 
 **sales-service (:8083) — dueño: agente D (en implementación), contrato fijado por el coordinador**
 - POST `/api/sales/reservas` {localidadId, cantidad} autenticada → 201 {reservaId, estado, localidadId,
@@ -222,3 +222,18 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   por error); una purga real exige reescribir TODOS los SHAs + force-push y GitHub puede cachear
   copias. Lección: nunca versionar documentos privados en repos públicos; si ya está, decidir
   explícitamente entre "quitar de HEAD" (simple) y "purgar historial" (invasivo).
+- 2026-10-31 (review seguridad): `/reservar` y `/liberar` estaban en `.authenticated()` y
+  `CatalogClient` reenviaba el JWT del **usuario** → cualquier USER podía inflar la
+  disponibilidad (liberar) o agotar el cupo (reservar). Fix: `JwtService.generarTokenServicio`
+  (sub=servicio, rol=SERVICE, 60 s) firmado por sales con el secreto compartido; catalog exige
+  `hasRole("SERVICE")` SOLO en esos dos endpoints (más catch-all `/api/catalog/**` → ADMIN).
+  Lección: `authenticated()` no distingue servicio de usuario cuando el servicio reenvía el token
+  del usuario.
+- 2026-10-31 (review seguridad): `JwtAuthenticationFilter` autenticaba tokens SIN claim `rol`
+  como `ROLE_null` (pasaban rutas `authenticated()`). Ahora un token sin rol → 401.
+- 2026-10-31 (review): un partido **CANCELADO o JUGADO no admite reservar** (409 en catalog): la
+  UI deshabilitaba el botón pero la API seguía vendiendo. Además `PartidoRequest` ahora exige
+  `hora` y `escenario` (antes se podían crear partidos "vacíos" por API; así nació el duplicado
+  de E2E).
+- 2026-10-31 (datos): se borró el partido duplicado `E2E United FC` id=4 (PROGRAMADO, sin
+  hora/escenario/localidades) y se conservó el id=5 (CANCELADO, con localidad y reserva).

@@ -55,10 +55,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/catalog/partidos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/catalog/partidos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/catalog/localidades/**").hasRole("ADMIN")
-                        // Inventario: cualquier autenticado (sales-service actúa con su JWT)
+                        // Inventario interno: SOLO el servicio de ventas (token de servicio).
+                        // Un USER con su propio JWT ya NO puede reservar ni liberar cupo.
                         .requestMatchers(HttpMethod.POST,
                                 "/api/catalog/localidades/*/reservar",
-                                "/api/catalog/localidades/*/liberar").authenticated()
+                                "/api/catalog/localidades/*/liberar").hasRole("SERVICE")
+                        // Cualquier otra mutación del catálogo es de ADMIN (catch-all:
+                        // un endpoint nuevo no queda abierto a cualquier autenticado).
+                        .requestMatchers("/api/catalog/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) -> {

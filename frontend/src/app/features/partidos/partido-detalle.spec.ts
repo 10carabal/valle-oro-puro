@@ -96,6 +96,26 @@ describe('PartidoDetalle', () => {
     expect(boton?.textContent?.trim()).toBe('Agotado');
   });
 
+  it('con el partido CANCELADO no permite comprar: botón deshabilitado y sin panel', async () => {
+    httpMock.expectOne('/api/catalog/partidos/1').flush({
+      ...partidoEjemplo,
+      estado: 'CANCELADO',
+      localidades: [{ id: 10, nombre: 'General', precio: 15000, cupo: 100, vendidos: 30, disponibles: 70 }],
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const boton = elemento().querySelector('button.boton') as HTMLButtonElement | null;
+    expect(boton).not.toBeNull();
+    expect(boton?.disabled).toBe(true);
+    expect(boton?.textContent?.trim()).toBe('Cancelado');
+
+    boton?.click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.paso()).toBeNull();
+    expect(elemento().querySelector('input#cantidad')).toBeNull();
+  });
+
   it('permite ver disponibles cuando hay cupo', async () => {
     httpMock.expectOne('/api/catalog/partidos/1').flush({
       ...partidoEjemplo,
