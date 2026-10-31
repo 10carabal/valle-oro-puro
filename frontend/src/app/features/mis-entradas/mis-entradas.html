@@ -1,0 +1,70 @@
+<section class="pantalla">
+  <header class="pantalla__cabecera">
+    <h1>Mis entradas</h1>
+    <button class="boton" type="button" (click)="cargar()" [disabled]="cargando()">Actualizar</button>
+  </header>
+
+  @if (error(); as mensajeError) {
+    <p class="alerta" role="alert">{{ mensajeError }}</p>
+  }
+
+  @if (cargando()) {
+    <p class="estado-vacio" role="status">Cargando tus entradas…</p>
+  } @else if (reservas().length > 0) {
+    <ul class="mis-entradas__lista">
+      @for (reserva of reservas(); track trackPorId($index, reserva)) {
+        <li class="mis-entrada tarjeta">
+          <div class="tarjeta__cabecera">
+            <h2>{{ reserva.rival }}</h2>
+            <app-chip-estado [estado]="reserva.estado" />
+          </div>
+
+          <p class="mis-entrada__datos">
+            Localidad {{ reserva.localidadId }} · {{ reserva.cantidad }}
+            {{ reserva.cantidad === 1 ? 'entrada' : 'entradas' }} ·
+            {{ reserva.total | cop }} ·
+            <span class="mis-entrada__estado">{{ etiquetaEstado(reserva.estado) }}</span>
+          </p>
+          <p class="mis-entrada__fecha">Reservada el {{ reserva.creadoEn }}</p>
+
+          @if (reserva.entrada; as entrada) {
+            <p class="mis-entrada__codigo">
+              Código: <strong>{{ entrada.codigo }}</strong>
+            </p>
+            <p class="mis-entrada__fecha">Emitida el {{ entrada.emitidaEn }}</p>
+          }
+
+          <div class="mis-entrada__acciones">
+            @if (puedePagar(reserva)) {
+              <button
+                class="boton boton--primario"
+                type="button"
+                (click)="pagar(reserva)"
+                [disabled]="procesando() === reserva.id"
+              >
+                {{ procesando() === reserva.id ? 'Procesando…' : 'Pagar ahora' }}
+              </button>
+            }
+            @if (puedeCancelar(reserva)) {
+              <button
+                class="boton"
+                type="button"
+                (click)="cancelar(reserva)"
+                [disabled]="procesando() === reserva.id"
+              >
+                Cancelar reserva
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  } @else if (error()) {
+    <p class="estado-vacio" role="status">No fue posible cargar tus entradas.</p>
+  } @else {
+    <p class="estado-vacio">Aún no tienes entradas</p>
+    <p class="mis-entradas__vacio-accion">
+      <a routerLink="/partidos">Ver partidos disponibles →</a>
+    </p>
+  }
+</section>

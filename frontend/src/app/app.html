@@ -4,6 +4,10 @@
   <nav class="navbar__enlaces">
     <a routerLink="/partidos" routerLinkActive="activo">Partidos</a>
 
+    @if (auth.estaLogueado()) {
+      <a routerLink="/mis-entradas" routerLinkActive="activo">Mis entradas</a>
+    }
+
     @if (auth.esAdmin()) {
       <a routerLink="/admin" routerLinkActive="activo">Admin</a>
     }
