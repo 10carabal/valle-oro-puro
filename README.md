@@ -5,7 +5,8 @@ los usuarios consultan los partidos, compran entradas con **pago simulado** y re
 código único; los administradores gestionan partidos, precios, cupos y reportan ventas.
 
 **Stack:** Spring Boot 3.5.16 (Java 21) · Angular 22 (standalone + signals) ·
-PostgreSQL 16 · Flyway · Spring Security + JWT · Testcontainers · Springdoc (Swagger).
+Angular Material 22 (MIT) · PostgreSQL 16 · Flyway · Spring Security + JWT · Testcontainers ·
+Springdoc (Swagger).
 
 ## Estado: qué está implementado
 
@@ -31,7 +32,7 @@ PostgreSQL 16 · Flyway · Spring Security + JWT · Testcontainers · Springdoc 
 ```mermaid
 flowchart LR
     U["Usuario (navegador)"]
-    ANG["Angular :4200<br/>standalone + signals"]
+    ANG["Angular :4200<br/>standalone + signals + Material"]
     PROXY["proxy.conf.json<br/>sin pathRewrite"]
     AUTH["auth-service :8081<br/>login, registro y emision de JWT"]
     CAT["catalog-service :8082<br/>partidos, localidades e inventario"]
@@ -58,7 +59,7 @@ flowchart LR
 | `auth-service` | 8081 | Registro (BCrypt), login y **emisión** del JWT HS256. Es el único emisor del token. | `auth` |
 | `catalog-service` | 8082 | Catálogo público de partidos y localidades. Es el **dueño del inventario** (cupo/vendidos): expone el endpoint `reservar/liberar` que implementa la anti-sobreventa. | `catalog` |
 | `sales-service` | 8083 | Orquesta la **saga de compra** (reserva → pagar → cancelar), persiste reservas y entradas, y sirve el reporte de ventas. No es dueño del cupo. | `sales` |
-| `frontend` | 4200 | Angular standalone con signals. El dev-server actúa de proxy hacia los 3 servicios. | — |
+| `frontend` | 4200 | Angular standalone con signals, Angular Material 22 y sistema de diseño propio (rojo/blanco del Valle). El dev-server actúa de proxy hacia los 3 servicios. | — |
 
 ### Cómo se comunican
 
@@ -411,7 +412,7 @@ basket/
 │   ├── auth-service/           # :8081 — esquema auth
 │   ├── catalog-service/        # :8082 — esquema catálogo + inventario (caso crítico)
 │   └── sales-service/          # :8083 — esquema ventas + saga + Native Query
-├── frontend/                   # Angular 22 standalone + signals (proxy a los 3 servicios)
+├── frontend/                   # Angular 22 standalone + signals + Material 22 (proxy a los 3 servicios)
 ├── infra/
 │   ├── docker-compose.yml      # PostgreSQL 16 (:5433) + servicios con --profile full
 │   ├── Dockerfile              # build multi-paso parametrizado con --build-arg MODULE

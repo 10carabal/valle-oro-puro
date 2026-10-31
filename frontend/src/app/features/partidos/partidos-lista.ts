@@ -41,6 +41,25 @@ export class PartidosLista implements OnInit {
     this.actualizarFiltros({ estado: valor });
   }
 
+  /** Quita todos los filtros y vuelve a la lista completa. */
+  limpiarFiltros(): void {
+    void this.router.navigate(['/partidos']);
+  }
+
+  /** Día del bloque de fecha (talonario) a partir de YYYY-MM-DD. */
+  dia(fecha: string): string {
+    const [, , dia] = fecha.split('-');
+    return dia ? String(Number(dia)) : '';
+  }
+
+  /** Mes abreviado en español para el bloque de fecha. */
+  mes(fecha: string): string {
+    const [, mes] = fecha.split('-');
+    const nombres = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const indice = Number(mes) - 1;
+    return nombres[indice] ?? '';
+  }
+
   trackPorId(_index: number, partido: Partido): number {
     return partido.id;
   }

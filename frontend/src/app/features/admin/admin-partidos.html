@@ -1,5 +1,10 @@
 <section class="pantalla admin-pantalla">
-  <h2>Partidos</h2>
+  <header class="pantalla__cabecera">
+    <div>
+      <h2>Partidos</h2>
+      <p class="pantalla__intro">Crea partidos, ajusta localidades y cancela encuentros.</p>
+    </div>
+  </header>
 
   @if (exito(); as mensaje) {
     <p class="alerta alerta--ok" role="status">{{ mensaje }}</p>
@@ -78,12 +83,12 @@
         {{ enviando() ? 'Guardando…' : modoEdicion() ? 'Guardar cambios' : 'Crear partido' }}
       </button>
       @if (modoEdicion()) {
-        <button class="boton" type="button" (click)="cancelarEdicion()">Descartar</button>
+        <button class="boton boton--texto" type="button" (click)="cancelarEdicion()">Descartar</button>
       }
     </div>
   </form>
 
-  <h3>Listado</h3>
+  <h3 class="seccion-titulo">Listado</h3>
 
   @if (errorLista(); as mensaje) {
     <p class="alerta" role="alert">{{ mensaje }}</p>
@@ -96,7 +101,7 @@
   } @else if (partidos().length > 0) {
     <div class="tarjetas">
       @for (p of partidos(); track p.id) {
-        <article class="tarjeta">
+        <article class="tarjeta partido-admin">
           <div class="tarjeta__cabecera">
             <h3>{{ p.rival }}</h3>
             <app-chip-estado [estado]="p.estado" />
@@ -104,16 +109,16 @@
           <p class="tarjeta__datos">{{ p.fecha }} · {{ p.hora }} · {{ p.escenario }}</p>
 
           <div class="acciones">
-            <button class="boton" type="button" (click)="editarPartido(p)">Editar</button>
+            <button class="boton boton--secundario" type="button" (click)="editarPartido(p)">Editar</button>
             <button
-              class="boton"
+              class="boton boton--texto"
               type="button"
               (click)="cancelarPartido(p)"
               [disabled]="p.estado === 'CANCELADO'"
             >
               Cancelar partido
             </button>
-            <button class="boton" type="button" (click)="abrirGestion(p)">
+            <button class="boton boton--texto" type="button" (click)="abrirGestion(p)">
               {{ gestionandoId() === p.id ? 'Cerrar gestión de localidades' : 'Gestionar localidades' }}
             </button>
           </div>
@@ -123,7 +128,7 @@
             <section class="gestion">
               <div class="gestion__cabecera">
                 <h4>Localidades · {{ p.rival }}</h4>
-                <button class="boton" type="button" (click)="cerrarGestion()">Cerrar</button>
+                <button class="boton boton--texto" type="button" (click)="cerrarGestion()">Cerrar</button>
               </div>
 
               @if (exitoLocalidad(); as mensaje) {
@@ -184,7 +189,7 @@
                     }}
                   </button>
                   @if (formLocalidad.controls.id.value !== null) {
-                    <button class="boton" type="button" (click)="descartarEdicionLocalidad()">
+                    <button class="boton boton--texto" type="button" (click)="descartarEdicionLocalidad()">
                       Cancelar edición
                     </button>
                   }
@@ -231,7 +236,9 @@
                           }
                         </td>
                         <td>
-                          <button class="boton" type="button" (click)="editarLocalidad(l)">Editar</button>
+                          <button class="boton boton--texto" type="button" (click)="editarLocalidad(l)">
+                            Editar
+                          </button>
                         </td>
                       </tr>
                     }

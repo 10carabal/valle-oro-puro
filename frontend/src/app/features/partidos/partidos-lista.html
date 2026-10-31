@@ -1,6 +1,12 @@
 <section class="pantalla">
   <header class="pantalla__cabecera">
-    <h1>Partidos</h1>
+    <div>
+      <h1>Partidos</h1>
+      <p class="pantalla__intro">
+        Entradas para la temporada de baloncesto del Valle del Cauca. Elige tu partido y asegura tu
+        lugar.
+      </p>
+    </div>
 
     <div class="filtros">
       <label class="filtros__campo">
@@ -22,6 +28,12 @@
           }
         </select>
       </label>
+
+      @if (fecha() || estado()) {
+        <button class="boton boton--texto" type="button" (click)="limpiarFiltros()">
+          Limpiar filtros
+        </button>
+      }
     </div>
   </header>
 
@@ -32,15 +44,25 @@
   } @else {
     <div class="tarjetas">
       @for (p of partidos(); track p.id) {
-        <article class="tarjeta">
-          <div class="tarjeta__cabecera">
-            <h2>
-              <a [routerLink]="['/partidos', p.id]">{{ p.rival }}</a>
-            </h2>
+        <article class="tarjeta partido">
+          <div class="partido__cabecera">
+            <div class="partido__fecha" aria-hidden="true">
+              <span class="partido__dia">{{ dia(p.fecha) }}</span>
+              <span class="partido__mes">{{ mes(p.fecha) }}</span>
+            </div>
+
+            <div class="partido__titulo">
+              <h2>
+                <a [routerLink]="['/partidos', p.id]">{{ p.rival }}</a>
+              </h2>
+              <p class="partido__meta">
+                <span>{{ p.hora }}</span>
+                <span>{{ p.escenario }}</span>
+              </p>
+            </div>
+
             <app-chip-estado [estado]="p.estado" />
           </div>
-
-          <p class="tarjeta__datos">{{ p.fecha }} · {{ p.hora }} · {{ p.escenario }}</p>
 
           <table class="tabla-localidades">
             <thead>
@@ -69,7 +91,9 @@
             </tbody>
           </table>
 
-          <a class="boton boton--primario" [routerLink]="['/partidos', p.id]">Ver detalle</a>
+          <a class="boton boton--secundario partido__cta" [routerLink]="['/partidos', p.id]">
+            Ver detalle
+          </a>
         </article>
       }
     </div>

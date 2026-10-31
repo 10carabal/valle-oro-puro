@@ -197,3 +197,23 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   en inglés; (4) para cambios aún sin commit, `git checkout wip/* -- <ruta>`. Seguro SOLO si la
   historia original no tiene borrados ni renombres (verificar con `git log --diff-filter=D/--filter=R`
   vacío); si los tiene, el `checkout -- .` deja archivos huérfanos.
+- 2026-10-31 (extra frontend): **PrimeNG 22 ya NO es MIT**: desde la v22 usa licencia PrimeUI dual
+  (Community/Commercial). Sin clave válida muestra un banner "Invalid PrimeUI License" sobre la app
+  (dev y prod) y la clave NO puede publicarse (repo público = incumplimiento). La Community es gratis
+  para individuos pero requiere registro y renovación anual. La última MIT es la 21, que no declara
+  soporte para Angular 22. Para este repo se eligió **Angular Material 22** (MIT, mismos releases
+  que Angular, sin claves ni banners).
+- 2026-10-31 (extra frontend): tema M3 de Angular Material 22: `@use '@angular/material' as mat;` y
+  `html { @include mat.theme((color: (primary: mat.$red-palette, tertiary: mat.$red-palette),
+  typography: (plain-family: 'Barlow', brand-family: 'Barlow Condensed'), density: 0)); }`.
+  Los tokens emitidos son `--mat-sys-*` y se sobreescriben en `:root` (ej. `--mat-sys-primary:
+  #c8102e`). `@primeng/themes` ya no existe en el ecosistema Prime: es `@primeuix/themes`.
+- 2026-10-31 (extra frontend): rediseño seguro = **los specs son el contrato**: conservar clases
+  (`.tabla-localidades`, `.tabla-reporte`, `.agotado`, `button.boton`, `input#cantidad`), textos
+  exactos ('Elegir cantidad', 'Confirmada · entrada emitida', 'TOTALES', 'Aún no tienes entradas'…)
+  y `window.confirm`; con eso `ng test` sigue en 56/56 sin tocar ni un spec.
+- 2026-10-31 (extra frontend): Google Fonts con fallback (`Barlow`/`Barlow Condensed` → `system-ui`)
+  y sin fuente de iconos: los iconos son emoji/SVG, así que sin red la UI no muestra "iconos de
+  texto" (fallback feo típico de Material Symbols/ligaduras).
+- 2026-10-31 (extra frontend): `ng serve` como comando en background del shell de OpenCode: **no**
+  pasarle `timeout` (por defecto no tiene); si se pasa, el server muere a los N ms aunque compile bien.

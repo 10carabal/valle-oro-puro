@@ -1,16 +1,23 @@
 <section class="pantalla admin-pantalla">
-  <h2>Reporte de ventas</h2>
+  <header class="pantalla__cabecera">
+    <div>
+      <h2>Reporte de ventas</h2>
+      <p class="pantalla__intro">Recaudo por partido y localidad, calculado con la consulta nativa del servicio de ventas.</p>
+    </div>
+  </header>
 
   <div class="reporte__cabecera">
-    <label class="filtros__campo">
-      <span>Partido (opcional)</span>
-      <select #filtroPartido [value]="partidoId()" (change)="cambiarPartido(filtroPartido.value)">
-        <option value="">Todos los partidos</option>
-        @for (p of partidos(); track p.id) {
-          <option [value]="p.id">{{ p.rival }} · {{ p.fecha }}</option>
-        }
-      </select>
-    </label>
+    <div class="filtros">
+      <label class="filtros__campo">
+        <span>Partido (opcional)</span>
+        <select #filtroPartido [value]="partidoId()" (change)="cambiarPartido(filtroPartido.value)">
+          <option value="">Todos los partidos</option>
+          @for (p of partidos(); track p.id) {
+            <option [value]="p.id">{{ p.rival }} · {{ p.fecha }}</option>
+          }
+        </select>
+      </label>
+    </div>
     <p class="reporte__nota">Solo entran reservas confirmadas (CONFIRMED).</p>
   </div>
 
@@ -27,33 +34,35 @@
   } @else if (filas().length === 0) {
     <p class="estado-vacio">Aún no hay ventas confirmadas</p>
   } @else {
-    <table class="tabla-localidades tabla-reporte">
-      <thead>
-        <tr>
-          <th>Rival</th>
-          <th>Localidad</th>
-          <th>Cantidad vendida</th>
-          <th>Total recaudado</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (fila of filas(); track trackPorFila($index, fila)) {
+    <div class="tarjeta tabla-envoltura">
+      <table class="tabla-localidades tabla-reporte">
+        <thead>
           <tr>
-            <td>{{ fila.rival }}</td>
-            <td>{{ fila.localidadId }}</td>
-            <td>{{ fila.cantidadVendida }}</td>
-            <td>{{ fila.totalRecaudado | cop }}</td>
+            <th>Rival</th>
+            <th>Localidad</th>
+            <th>Cantidad vendida</th>
+            <th>Total recaudado</th>
           </tr>
-        }
-      </tbody>
-      <tfoot>
-        <tr>
-          <th>TOTALES</th>
-          <th></th>
-          <th>{{ totalCantidad() }}</th>
-          <th>{{ totalRecaudado() | cop }}</th>
-        </tr>
-      </tfoot>
-    </table>
+        </thead>
+        <tbody>
+          @for (fila of filas(); track trackPorFila($index, fila)) {
+            <tr>
+              <td>{{ fila.rival }}</td>
+              <td>{{ fila.localidadId }}</td>
+              <td>{{ fila.cantidadVendida }}</td>
+              <td>{{ fila.totalRecaudado | cop }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <th>TOTALES</th>
+            <th></th>
+            <th>{{ totalCantidad() }}</th>
+            <th>{{ totalRecaudado() | cop }}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   }
 </section>
