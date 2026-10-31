@@ -133,12 +133,14 @@ filtros avanzados → script demo. Nunca lo intocable.
   - Verificación: `/admin` sin sesión redirige a `/login`; con USER redirige; con ADMIN entra ✅ (5 tests de guards)
 - [x] 4.3 Lista de partidos con filtros por fecha y estado + detalle con localidades, precios y disponibilidad
   - Verificación: filtrar por fecha y por estado muestra resultados del seed ✅ (estado vacío, "Agotado", pipe COP)
-- [ ] 4.4 Flujo de compra: seleccionar localidad → cantidad → reserva → pago simulado → pantalla con
+- [x] 4.4 Flujo de compra: seleccionar localidad → cantidad → reserva → pago simulado → pantalla con
     código de entrada; 409 mostrado amigable cuando no hay cupo
-  - **Agente E cancelado al cerrar el día SIN producir nada** (árbol verificado limpio: no existe
-    `mis-entradas/` ni `sales.service.ts`); relanzar mañana con el mismo alcance (el prompt está en
-    el historial de la sesión; contrato de sales completo en memory.md §3)
-  - Verificación: comprar la última entrada en 2 pestañas → una confirma y la otra ve el 409
+  - Implementado: `core/services/sales.service.ts` (reservar/pagar/cancelar/misReservas tipado 1:1
+    con el contrato), panel de 3 pasos en el detalle (cantidad → reserva → pago) con total en vivo,
+    badge "Agotado", mensaje de 409 amigable vía `mensajeApi()`, refresh de disponibilidad en
+    background; ruta `/mis-entradas` (protegida) con acciones contextuales (pagar pendiente,
+    cancelar con confirmación) y visualización del código de entrada
+  - Verificación: `ng test` → **56/56 en 11 archivos** en verde ✅ · `ng build` SUCCESS (276 kB)
 
 ### Bloque 5 — Angular admin 🅿️ (agente B)
 - [x] 5.1 Login/registro (formularios reactivos + validaciones)
@@ -157,23 +159,44 @@ filtros avanzados → script demo. Nunca lo intocable.
   - Resultado agente F: `ng test` **42/42 en verde** (9 archivos, estable en 2 corridas) ✅ 2026-10-28
 
 ## Día 4 — Entrega
-- [ ] 6.1 E2E manual completo: registro → listar → filtrar → comprar → código → admin → reporte → cancelar
-  - Verificación: recorrido sin errores; notas de cualquier bug → arreglo
-- [ ] 6.2 Script demo de concurrencia (`infra/demo-concurrencia.mjs`): N peticiones HTTP paralelas
+- [x] 6.1 E2E manual completo: registro → listar → filtrar → comprar → código → admin → reporte → cancelar
+  - Suites A+B (flujo público y admin): **27/27** en verde; suite C (reglas de error y seguridad): **25/25**
+  - Recorrido completo sin errores; 3 bugs encontrados y corregidos (→ tarea 6.7) y re-verificados en vivo
+  - Verificación: recorrido sin errores; notas de cualquier bug → arreglo ✅
+- [x] 6.2 Script demo de concurrencia (`infra/demo-concurrencia.mjs`): N peticiones HTTP paralelas
     sobre la última entrada; imprime éxitos/conflictos
-  - Verificación: contra el stack corriendo imprime "1 éxito / N-1 conflictos"
-- [ ] 6.3 README: arquitectura (diagrama Mermaid), requisitos, variables de entorno, cómo ejecutar,
+  - Contra el stack corriendo: **1 éxito / 9 conflictos**, disponibles 1 → 0, exit code 0
+  - Verificación: contra el stack corriendo imprime "1 éxito / N-1 conflictos" ✅
+- [x] 6.3 README: arquitectura (diagrama Mermaid), requisitos, variables de entorno, cómo ejecutar,
     qué está implementado, **JPQL vs Native Query (justificación)**, **estrategia de concurrencia +
     porqué frente a optimista/pesimista**, cómo correr las pruebas
-  - **Agente G cancelado al cerrar el día SIN producir nada** (verificado: no existe `README.md`
-    en la raíz); relanzar mañana con el mismo alcance (el prompt está en el historial de la sesión)
-  - Verificación: alguien puede clonar y levantar siguiendo solo el README
-- [ ] 6.4 Springdoc (Swagger) en los 3 servicios, enlazado en el README *(recortable)*
-  - Verificación: `/swagger-ui.html` responde en los 3
-- [ ] 6.5 Pasada final: `./mvnw test` en los 4 módulos + `ng build` + `ng test` en verde
-  - Verificación: todo verde, resultados anotados aquí
-- [ ] 6.6 Repo GitHub + commit final con el README
-  - Verificación: enlace del repo responde y clona limpio
+  - `README.md` en la raíz (~466 líneas): diagrama de arquitectura + diagrama de secuencia de compra
+    (Mermaid), JPQL vs Native con justificación, concurrencia (UPDATE atómico + CHECK + UNIQUE) frente
+    a optimista/pesimista, requisitos, env vars, ejecución (dev + compose full), seeds, Swagger, layout
+  - Verificación: alguien puede clonar y levantar siguiendo solo el README ✅
+- [x] 6.4 Springdoc (Swagger) en los 3 servicios, enlazado en el README *(recortable)*
+  - `/swagger-ui.html` responde (302) en :8081, :8082 y :8083; enlazado en el README
+  - Verificación: `/swagger-ui.html` responde en los 3 ✅
+- [x] 6.5 Pasada final: `./mvnw test` en los 4 módulos + `ng build` + `ng test` en verde
+  - Backend `.\mvnw.cmd -B test` → **BUILD SUCCESS, 28/28** (auth 9 + catalog 11 + sales 8)
+  - Frontend `ng build` SUCCESS (276 kB) · `ng test` → **56/56 en 11 archivos**
+  - Verificación: todo verde, resultados anotados aquí ✅
+- [x] 6.6 Repo GitHub + commit final con el README
+  - Repo público: **https://github.com/10carabal/valle-oro-puro** (`gh` autenticado como 10carabal)
+  - Historial reorganizado en 12 ramas temáticas con PRs a `main` (merge commit), mensajes en inglés
+  - Verificación: enlace del repo responde y clona limpio ✅
+
+### Bloque 6.7 — Correcciones halladas en el E2E (verificadas en vivo) ✅
+- [x] 6.7.1 **403 llegaba como 401**: `SecurityConfig` de sales no tenía `accessDeniedHandler`; el
+    `sendError` por defecto re-despacha a `/error` sin autenticación → ahora devuelve `ApiError` 403
+    directo (mismo patrón que ya tenía catalog)
+- [x] 6.7.2 **500 en payload ilegible**: `HttpMessageNotReadableException` (JSON malformado / fecha no
+    ISO) → ahora mapea a **400**
+- [x] 6.7.3 **500 en ruta inexistente**: `NoResourceFoundException` → ahora mapea a **404**
+- [x] 6.7.4 **500 silente**: el handler genérico ahora hace `log.error` con el stack completo (Spring
+    no loguea las excepciones capturadas por `@ExceptionHandler`)
+  - Verificación en vivo: reporte con USER → 403; JSON inválido → 400; ruta inexistente con token → 404;
+    backend sigue en **28/28** ✅
 
 ---
 
@@ -193,3 +216,23 @@ filtros avanzados → script demo. Nunca lo intocable.
 - **Pendientes al retomar**: relanzar E (4.4 compra) y G (6.3 README), 6.1 E2E manual, 6.2 script
   `infra/demo-concurrencia.mjs`, 6.4 Springdoc, 6.5 gates finales (`mvnw -B test` + `ng build` +
   `ng test`), 6.6 repo GitHub. Colchón: quedan 3 días y solo queda integración + entrega.
+
+### Cierre del día 4 (entrega) — 2026-10-31
+
+- **4.4 compra completada**: flujo reserva → pago simulado → código de entrada, más `/mis-entradas`;
+  `ng test` sube de 42/42 a **56/56 en 11 archivos**.
+- **6.1 E2E manual**: suites A+B **27/27**, suite C **25/25**. Encontró 3 bugs (403→401, 500→400,
+  500→404) corregidos en `common`/`sales` y **re-verificados en vivo** (bloque 6.7).
+- **6.2 demo de concurrencia en vivo**: `node infra/demo-concurrencia.mjs 10` → **1 éxito / 9
+  conflictos**, disponibles 1 → 0, exit 0 (garantía de la última entrada, visible end-to-end).
+- **6.3 README** (~466 líneas) con diagramas Mermaid, JPQL vs Native y estrategia de concurrencia.
+- **6.4 Swagger** responde (302) en los 3 servicios y queda enlazado en el README.
+- **6.5 gates finales en verde**: backend `mvnw -B test` → **28/28** · frontend `ng build` SUCCESS +
+  `ng test` → **56/56**.
+- **6.6 repo publicado**: **https://github.com/10carabal/valle-oro-puro** (público). Historial
+  reorganizado en **12 ramas temáticas con PRs a `main`** (merge commit, mensajes en inglés):
+  `chore/scaffold`, `feat/auth-service`, `feat/frontend`, `feat/catalog-service`,
+  `feat/sales-service`, `feat/admin-panel`, `docs/plan-tracking`, `fix/api-error-semantics`,
+  `feat/purchase-flow`, `chore/concurrency-demo`, `docs/readme`, `docs/day-4-closeout`.
+- **Prueba de integridad**: `git diff main wip/day4-pending` vacío → `main` replica exactamente el
+  estado final de la prueba.
