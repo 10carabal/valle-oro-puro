@@ -2,6 +2,7 @@ package com.valle.boleteria.sales;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Servicio de ventas (puerto 8083): reservas, pago simulado, entradas con código
@@ -14,6 +15,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * seguridad JWT.
  */
 @SpringBootApplication(scanBasePackages = {"com.valle.boleteria.sales", "com.valle.boleteria.common"})
+@EnableScheduling
 public class SalesApplication {
 
     public static void main(String[] args) {

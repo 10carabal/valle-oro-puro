@@ -213,7 +213,7 @@ Requisito: Docker corriendo (Testcontainers levanta **PostgreSQL 16 real** por m
 |---|---|---|
 | `auth-service` | 9 (6 integración + 3 unitarios) | Registro → login → `/yo`; email duplicado → 409 con `ApiError`; login malo → 401; `/yo` sin token → 401; login del admin seed; body inválido → 400. Unitarios del `JwtService`: claims, firma con otro secreto rechazada, secreto < 32 bytes falla. |
 | `catalog-service` | 14 (11 controller + 2 repositorio + 1 concurrencia) | Listado público con filtro de fecha; detalle 404; localidad pública; escrituras 401/403/201 según rol; **reservar/liberar solo con rol SERVICE** (USER y ADMIN → 403; token sin rol → 401); flujo reservar/liberar y 409 sin cupo; **partido CANCELADO no admite reservar (409)**; partido sin hora/escenario → 400; cupo no editable por debajo de lo vendido. Repositorio: JPQL de filtros (fecha, estado, ambas) y semilla de la última entrada. |
-| `sales-service` | 8 (7 flujo + 1 concurrencia) | Saga completa reserva→pagar→entrada; sin cupo → 409 y reserva REJECTED; cancelar libera cupo; permisos de pago/cancelación/reporte; cancelación masiva por partido; reporte nativo agrupa solo CONFIRMED; dos pagos no producen códigos repetidos. |
+| `sales-service` | 12 (7 flujo + 1 concurrencia compra + 2 concurrencia reserva + 2 expiración) | Saga completa reserva→pagar→entrada; sin cupo → 409 y reserva REJECTED; cancelar libera cupo; permisos de pago/cancelación/reporte; cancelación masiva por partido; reporte nativo agrupa solo CONFIRMED; dos pagos no producen códigos repetidos; **dos pagos/cancelaciones simultáneos → 409 y una sola entrada**; **PENDING viejas expiran y liberan cupo**. |
 
 Pruebas estrella del caso crítico:
 
@@ -287,6 +287,10 @@ La liberación (compensación) usa la misma técnica con piso en cero:
    **compensación** — se libera el cupo en catalog (`POST .../liberar`). La cancelación
    masiva por partido (`POST .../cancelar-por-partido/{id}`, ADMIN) repite la compensación
    por cada reserva viva.
+4. **Expiración** (job programado cada 60 s): las reservas `PENDING` con más de
+   `sales.reservas.expiracion.minutos` (10 por defecto) se cancelan y liberan su cupo; el
+   barrido es transaccional y reintenta en la pasada siguiente si catalog falla. Sin esto,
+   una reserva sin pago retendría el cupo para siempre.
 
 ### Alternativas consideradas
 

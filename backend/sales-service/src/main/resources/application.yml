@@ -23,11 +23,16 @@ spring:
 jwt:
   secret: ${JWT_SECRET:demo-secret-para-jwt-hs256-de-32-bytes!!}
 
-# Catálogo (dueño del inventario). sales ORQUESTA: reenvía el Bearer del usuario
-# y delega la anti-sobreventa en el UPDATE atómico de catalog.
+# Catálogo (dueño del inventario). sales ORQUESTA con un token de servicio y
+# delega la anti-sobreventa en el UPDATE atómico de catalog.
 sales:
   catalog:
     url: ${SALES_CATALOG_URL:http://localhost:8082}
+  reservas:
+    expiracion:
+      # Una reserva PENDING sin pago se cancela y libera el cupo pasado este tiempo.
+      minutos: ${SALES_RESERVAS_EXPIRACION_MINUTOS:10}
+      intervalo-ms: ${SALES_RESERVAS_EXPIRACION_INTERVALO_MS:60000}
 
 springdoc:
   api-docs:

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -34,6 +35,9 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
     /** Reservas vivas (PENDING/CONFIRMED) de un partido, para la cancelación masiva. */
     List<Reserva> findByPartidoIdAndEstadoIn(Long partidoId, Collection<EstadoReserva> estados);
+
+    /** Reservas PENDING creadas antes de un instante (job de expiración del cupo). */
+    List<Reserva> findByEstadoAndCreadoEnBefore(EstadoReserva estado, LocalDateTime limite);
 
     /**
      * NATIVE QUERY (requisito de la prueba) — reporte de ventas por partido y
