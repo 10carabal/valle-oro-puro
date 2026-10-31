@@ -1,0 +1,50 @@
+<section class="pantalla pantalla--centrado">
+  <form class="formulario tarjeta" [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+    <h1>Ingresar</h1>
+
+    @if (error(); as mensaje) {
+      <p class="alerta" role="alert">{{ mensaje }}</p>
+    }
+
+    <div class="campo">
+      <label for="login-email">Correo</label>
+      <input
+        id="login-email"
+        type="email"
+        formControlName="email"
+        autocomplete="email"
+        placeholder="tu@correo.com"
+      />
+      @if (mostrarError('email', 'required')) {
+        <p class="campo__error">El correo es obligatorio.</p>
+      }
+      @if (mostrarError('email', 'email')) {
+        <p class="campo__error">Ingresa un correo válido (debe incluir @).</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="login-password">Contraseña</label>
+      <input
+        id="login-password"
+        type="password"
+        formControlName="password"
+        autocomplete="current-password"
+      />
+      @if (mostrarError('password', 'required')) {
+        <p class="campo__error">La contraseña es obligatoria.</p>
+      }
+      @if (mostrarError('password', 'minlength')) {
+        <p class="campo__error">La contraseña debe tener mínimo 6 caracteres.</p>
+      }
+    </div>
+
+    <button class="boton boton--primario" type="submit" [disabled]="enviando()">
+      {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
+    </button>
+
+    <p class="formulario__pie">
+      ¿No tienes cuenta? <a routerLink="/registro">Regístrate</a>
+    </p>
+  </form>
+</section>
