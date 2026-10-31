@@ -20,9 +20,12 @@ Springdoc (Swagger).
 - [x] **Panel ADMIN**: CRUD de partidos y localidades, edición de precios/cupos, cancelación
       lógica de partido con liberación masiva de cupos y **reporte de ventas** (Native Query).
 - [x] **JWT + roles USER/ADMIN** validados en el backend de **cada** servicio; errores
-      401/403 en formato `ApiError` uniforme.
-- [x] **Pruebas automatizadas**: 28 tests backend (Testcontainers/Postgres 16) + la suite del
-      frontend (Vitest).
+      401/403 en formato `ApiError` uniforme. El inventario interno (`reservar/liberar`) solo
+      acepta un **token de servicio** (`rol=SERVICE`, 60 s) firmado por sales.
+- [x] **Reservas sin pago expiran** (job programado) y devuelven el cupo; carreras de pago y
+      cancelación resueltas con bloqueo optimista (`@Version` → 409).
+- [x] **Pruebas automatizadas**: **35 tests backend** (Testcontainers/Postgres 16) + **57 tests**
+      de frontend (Vitest, 11 archivos).
 - [x] **Swagger** en los 3 servicios y **script de demostración de concurrencia**.
 
 ---
@@ -108,6 +111,8 @@ compose) permiten arrancar sin configurar nada.
 | `DB_PASSWORD` | Contraseña de PostgreSQL | `boleteria` | `boleteria` |
 | `JWT_SECRET` | Secreto HS256, **≥ 32 bytes** (lo comparten los 3 servicios) | `demo-secret-para-jwt-hs256-de-32-bytes!!` | `c2VjcmV0LWRlbS1ibGV0ZXJpYS1jb2RpZ28tMzItYnl0ZXMtcGFyYS1ocy0yNTY` |
 | `SALES_CATALOG_URL` | URL de catalog **solo para sales-service** | `http://localhost:8082` | `http://catalog-service:8082` |
+| `SALES_RESERVAS_EXPIRACION_MINUTOS` | Minutos que una reserva `PENDING` puede esperar el pago antes de expirar | `10` | `10` |
+| `SALES_RESERVAS_EXPIRACION_INTERVALO_MS` | Intervalo del job que expira reservas `PENDING` | `60000` | `60000` |
 
 En un entorno real: secreto propio por entorno y credenciales de BD distintas; el arranque
 falla de forma explícita si `JWT_SECRET` tiene menos de 32 bytes.
@@ -196,6 +201,10 @@ localidad VIP de cupo 1 espera: **1 éxito / N-1 conflictos**.
 - **Deploy en la nube**: la entrega se ejecuta en local (Docker).
 - **Tests e2e de navegador**: la verificación end-to-end es manual; el frontend tiene unit
   tests con Vitest.
+- **Rate limiting** en login/registro y tope por usuario en `/reservas` (la expiración de PENDING
+  evita que un usuario retenga cupo indefinidamente).
+- **Saga distribuida / outbox** para la cancelación de partido: se orquesta desde el cliente
+  (ver "Límites conocidos y decisiones").
 
 ---
 
@@ -203,7 +212,7 @@ localidad VIP de cupo 1 espera: **1 éxito / N-1 conflictos**.
 
 Requisito: Docker corriendo (Testcontainers levanta **PostgreSQL 16 real** por módulo).
 
-### Backend — 28 tests
+### Backend — 35 tests
 
 ```powershell
 .\mvnw.cmd -B test
@@ -232,7 +241,14 @@ npx ng test --watch=false
 ```
 
 Suite unitaria con **Vitest** (Angular 22 ya no usa Karma): servicios, guards, componentes y
-el flujo de compra, con **42+ tests** en verde.
+el flujo de compra, con **57 tests en 11 archivos** en verde.
+
+**Diseño (valor agregado):** identidad deportiva **rojo/blanco** del Valle del Cauca con tokens
+en `styles.scss` (sombras con offset vertical, superficies sin bordes, acentos rojos y jerarquía
+de botones sólido/outline/texto, según los 7 tips de Refactoring UI), tipografía
+**Barlow Condensed + Barlow** con fallback a fuentes del sistema, y **Angular Material 22** en las
+pantallas de acceso (`mat-form-field`, `mat-flat-button`). El botón de compra se deshabilita si el
+partido no está `PROGRAMADO` (y el backend también lo rechaza con 409).
 
 ---
 
@@ -270,6 +286,7 @@ La liberación (compensación) usa la misma técnica con piso en cero:
 | `CHECK (vendidos >= 0 AND vendidos <= cupo)` | `V1__init_catalogo.sql` (catalog) | Red de seguridad final: aunque un futuro camino esquivara el UPDATE, la BD rechaza la sobreventa. |
 | `UNIQUE (codigo_unico)` | `sales.entradas` | Garantía física de códigos de entrada no repetidos (UUID v4). |
 | `UNIQUE (reserva_id)` | `sales.entradas` | Exactamente **una entrada por reserva**. |
+| `@Version` en `Reserva` | `sales.reservas` (migración V3) | Serializa pagos/cancelaciones simultáneos sobre la MISMA reserva: el perdedor recibe **409**, nunca un 500. |
 | Transacción `REQUIRES_NEW` | sales (trazabilidad) | La reserva REJECTED se persiste en una transacción independiente para no perderla con el rollback del 409. |
 
 ### Saga de compra en sales-service
@@ -305,6 +322,10 @@ dentro del propio `UPDATE`, así que el motor de base de datos la evalúa de for
 es la solución más simple que es **correcta por construcción**, no deja ventana de carrera
 y no bloquea filas más allá del propio `UPDATE`, con evidencia directa en tests multihilo.
 
+El `@Version` de JPA **sí** se usa, pero en las **reservas** (transiciones de estado
+`PENDING → CONFIRMED/CANCELLED`), no en el inventario: ahí la condición de cupo necesita el
+`UPDATE` atómico para no depender de reintentos.
+
 ### Evidencia verificable
 
 1. `ConcurrenciaCupoTest` (catalog, 10 hilos, cupo 1, Postgres 16 real): 1 éxito / 9
@@ -313,6 +334,10 @@ y no bloquea filas más allá del propio `UPDATE`, con evidencia directa en test
    1 entrada emitida.
 3. Script end-to-end contra el stack corriendo: `node infra/demo-concurrencia.mjs [N]`
    → imprime `1 éxito / N-1 conflictos` y la disponibilidad final.
+4. `ConcurrenciaReservaTest` (sales, barrera): dos pagos simultáneos → **1 éxito + 1 conflicto
+   y una sola entrada**; pagar vs cancelar → **nunca** queda CONFIRMED con el cupo liberado.
+5. `ExpiracionPendientesTest` (sales): una PENDING envejecida se cancela y libera su cupo; las
+   PENDING nuevas y las CONFIRMED quedan intactas.
 
 ---
 
@@ -434,7 +459,7 @@ SELECT r.partido_id     AS "partidoId",
 ```
 basket/
 ├── backend/
-│   ├── common/                 # ApiError, GlobalExceptionHandler, JwtService, DTOs compartidos
+│   ├── common/                 # ApiError, GlobalExceptionHandler, JwtService (usuario y servicio), DTOs
 │   ├── auth-service/           # :8081 — esquema auth
 │   ├── catalog-service/        # :8082 — esquema catálogo + inventario (caso crítico)
 │   └── sales-service/          # :8083 — esquema ventas + saga + Native Query
@@ -463,12 +488,12 @@ sequenceDiagram
     S->>C: GET /api/catalog/localidades/{id}
     C-->>S: LocalidadInfo (precio, partido, rival)
     S->>C: POST /api/catalog/localidades/{id}/reservar (token de servicio rol SERVICE)
-    alt Hay cupo (UPDATE atómico afecta filas)
+    alt Hay cupo y el partido está PROGRAMADO (UPDATE atómico afecta filas)
         C-->>S: 200 CupoResponse
         S-->>A: 201 Reserva PENDING
         A->>S: POST /api/sales/reservas/{id}/pagar
         S-->>A: 200 CONFIRMED con entrada (código UUID)
-    else Sin cupo (0 filas afectadas)
+    else Sin cupo o partido cerrado (0 filas o 409 de estado)
         C-->>S: 409 ApiError
         S->>S: Persiste REJECTED (REQUIRES_NEW) y propaga el 409
         S-->>A: 409 (mensaje amigable en pantalla)

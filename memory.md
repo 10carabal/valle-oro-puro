@@ -265,3 +265,8 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   '30 minutes'` quedó en UTC y NO expiraba; hay que usar `(now() AT TIME ZONE 'America/Bogota')`
   o un intervalo mayor. La app compara de forma consistente (escribe y lee `LocalDateTime` con su
   propio reloj).
+- 2026-10-31 (docs): **el README es el contrato de la prueba** y se desalinea en silencio: tras
+  los PRs de hardening quedaron conteos viejos (28 tests backend, 42 frontend), faltaban la
+  expiración y `@Version` en el mapa de capas, y la secuencia no mencionaba "partido PROGRAMADO".
+  Lección: en cada PR que cambie tests, endpoints o configuración, actualizar README + memory en
+  el MISMO PR y hacer una pasada de grep por números/decisiones obsoletas antes de cerrar.
