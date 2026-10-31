@@ -217,3 +217,8 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   texto" (fallback feo típico de Material Symbols/ligaduras).
 - 2026-10-31 (extra frontend): `ng serve` como comando en background del shell de OpenCode: **no**
   pasarle `timeout` (por defecto no tiene); si se pasa, el server muere a los N ms aunque compile bien.
+- 2026-10-31 (review): el PDF del enunciado es un **documento privado** y el repo es público: se
+  quitó de HEAD (commit de borrado). Sigue en el historial (afad912 lo añadió, 50ff5b5 lo restauró
+  por error); una purga real exige reescribir TODOS los SHAs + force-push y GitHub puede cachear
+  copias. Lección: nunca versionar documentos privados en repos públicos; si ya está, decidir
+  explícitamente entre "quitar de HEAD" (simple) y "purgar historial" (invasivo).
