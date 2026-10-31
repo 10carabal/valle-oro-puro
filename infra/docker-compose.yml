@@ -1,0 +1,79 @@
+# Infraestructura: PostgreSQL 16 (3 esquemas auth/catalog/sales) + las 3 aplicaciones.
+#   docker compose up -d            → solo PostgreSQL (modo desarrollo con mvnw + ng serve)
+#   docker compose --profile full up --build  → PostgreSQL + auth (8081) + catalog (8082) + sales (8083)
+# Los esquemas y los datos de ejemplo los crea cada servicio con Flyway al arrancar.
+x-app-env: &app-env
+  DB_URL: jdbc:postgresql://postgres:5432/boleteria
+  DB_USER: boleteria
+  DB_PASSWORD: boleteria
+  JWT_SECRET: c2VjcmV0LWRlbS1ibGV0ZXJpYS1jb2RpZ28tMzItYnl0ZXMtcGFyYS1ocy0yNTY
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: boleteria-postgres
+    environment:
+      POSTGRES_DB: boleteria
+      POSTGRES_USER: boleteria
+      POSTGRES_PASSWORD: boleteria
+    ports:
+      - "5432:5432"
+    volumes:
+      - boleteria-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U boleteria -d boleteria"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  auth-service:
+    profiles: ["full"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      args:
+        MODULE: auth-service
+    container_name: boleteria-auth
+    environment:
+      <<: *app-env
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  catalog-service:
+    profiles: ["full"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      args:
+        MODULE: catalog-service
+    container_name: boleteria-catalog
+    environment:
+      <<: *app-env
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  sales-service:
+    profiles: ["full"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      args:
+        MODULE: sales-service
+    container_name: boleteria-sales
+    environment:
+      <<: *app-env
+      SALES_CATALOG_URL: http://catalog-service:8082
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  boleteria-pgdata:
