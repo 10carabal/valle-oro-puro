@@ -1,0 +1,40 @@
+.pantalla__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filtros__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.tarjetas {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.tarjeta__datos {
+  color: var(--color-texto-suave);
+  margin: 0.25rem 0 0.75rem;
+}
+
+.tarjeta .boton {
+  margin-top: 0.75rem;
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}

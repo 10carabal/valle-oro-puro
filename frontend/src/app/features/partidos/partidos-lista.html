@@ -1,0 +1,77 @@
+<section class="pantalla">
+  <header class="pantalla__cabecera">
+    <h1>Partidos</h1>
+
+    <div class="filtros">
+      <label class="filtros__campo">
+        <span>Fecha</span>
+        <input
+          type="date"
+          #filtroFecha
+          [value]="fecha()"
+          (change)="cambiarFecha(filtroFecha.value)"
+        />
+      </label>
+
+      <label class="filtros__campo">
+        <span>Estado</span>
+        <select #filtroEstado [value]="estado()" (change)="cambiarEstado(filtroEstado.value)">
+          <option value="">Todos</option>
+          @for (e of estados; track e) {
+            <option [value]="e">{{ e }}</option>
+          }
+        </select>
+      </label>
+    </div>
+  </header>
+
+  @if (cargando()) {
+    <p class="estado-vacio" role="status">Cargando partidos…</p>
+  } @else if (partidos().length === 0) {
+    <p class="estado-vacio">No hay partidos para ese filtro</p>
+  } @else {
+    <div class="tarjetas">
+      @for (p of partidos(); track p.id) {
+        <article class="tarjeta">
+          <div class="tarjeta__cabecera">
+            <h2>
+              <a [routerLink]="['/partidos', p.id]">{{ p.rival }}</a>
+            </h2>
+            <app-chip-estado [estado]="p.estado" />
+          </div>
+
+          <p class="tarjeta__datos">{{ p.fecha }} · {{ p.hora }} · {{ p.escenario }}</p>
+
+          <table class="tabla-localidades">
+            <thead>
+              <tr>
+                <th>Localidad</th>
+                <th>Precio</th>
+                <th>Cupo</th>
+                <th>Disponibles</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of p.localidades; track l.id) {
+                <tr>
+                  <td>{{ l.nombre }}</td>
+                  <td>{{ l.precio | cop }}</td>
+                  <td>{{ l.cupo }}</td>
+                  <td>
+                    @if (l.disponibles === 0) {
+                      <span class="agotado">Agotado</span>
+                    } @else {
+                      {{ l.disponibles }}
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <a class="boton boton--primario" [routerLink]="['/partidos', p.id]">Ver detalle</a>
+        </article>
+      }
+    </div>
+  }
+</section>

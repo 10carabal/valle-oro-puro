@@ -1,0 +1,25 @@
+<header class="navbar">
+  <a routerLink="/partidos" class="navbar__marca">🏀 Boletería Valle del Cauca</a>
+
+  <nav class="navbar__enlaces">
+    <a routerLink="/partidos" routerLinkActive="activo">Partidos</a>
+
+    @if (auth.esAdmin()) {
+      <a routerLink="/admin" routerLinkActive="activo">Admin</a>
+    }
+
+    @if (auth.estaLogueado()) {
+      <span class="navbar__usuario" title="{{ auth.user()?.email }}">
+        {{ auth.user()?.nombre ?? auth.user()?.email }}
+      </span>
+      <button class="boton boton--salir" type="button" (click)="auth.logout()">Salir</button>
+    } @else {
+      <a routerLink="/login">Ingresar</a>
+      <a routerLink="/registro" class="boton boton--primario navbar__registro">Registro</a>
+    }
+  </nav>
+</header>
+
+<main class="contenedor">
+  <router-outlet />
+</main>

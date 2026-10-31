@@ -1,0 +1,17 @@
+.pantalla--centrado {
+  display: flex;
+  justify-content: center;
+  padding-top: 2rem;
+}
+
+.formulario {
+  width: 100%;
+  max-width: 420px;
+}
+
+.formulario__pie {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--color-texto-suave);
+}
