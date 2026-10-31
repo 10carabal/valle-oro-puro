@@ -1,0 +1,278 @@
+<section class="pantalla admin-pantalla">
+  <h2>Partidos</h2>
+
+  @if (exito(); as mensaje) {
+    <p class="alerta alerta--ok" role="status">{{ mensaje }}</p>
+  }
+  @if (aviso(); as mensaje) {
+    <p class="alerta alerta--aviso" role="alert">{{ mensaje }}</p>
+  }
+  @if (error(); as mensaje) {
+    <p class="alerta" role="alert">{{ mensaje }}</p>
+  }
+
+  <!-- Crear / editar: el mismo formulario; el modo lo define edicionId -->
+  <form
+    class="formulario tarjeta form-partido"
+    [formGroup]="formPartido"
+    (ngSubmit)="guardarPartido()"
+    novalidate
+  >
+    <h3>{{ modoEdicion() ? 'Editar partido' : 'Crear partido' }}</h3>
+
+    <div class="grid-campos">
+      <div class="campo">
+        <label for="partido-rival">Rival</label>
+        <input id="partido-rival" type="text" formControlName="rival" placeholder="Ej. Cali Hornets" />
+        @if (mostrarErrorPartido('rival', 'required')) {
+          <p class="campo__error">El rival es obligatorio.</p>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="partido-fecha">Fecha</label>
+        <input id="partido-fecha" type="date" formControlName="fecha" />
+        @if (mostrarErrorPartido('fecha', 'required')) {
+          <p class="campo__error">La fecha es obligatoria.</p>
+        }
+        @if (mostrarErrorPartido('fecha', 'fechaPasada')) {
+          <p class="campo__error">La fecha no puede ser en el pasado.</p>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="partido-hora">Hora</label>
+        <input id="partido-hora" type="time" formControlName="hora" />
+        @if (mostrarErrorPartido('hora', 'required')) {
+          <p class="campo__error">La hora es obligatoria.</p>
+        }
+      </div>
+
+      <div class="campo">
+        <label for="partido-escenario">Escenario</label>
+        <input
+          id="partido-escenario"
+          type="text"
+          formControlName="escenario"
+          placeholder="Ej. Coliseo Evangelista"
+        />
+        @if (mostrarErrorPartido('escenario', 'required')) {
+          <p class="campo__error">El escenario es obligatorio.</p>
+        }
+      </div>
+
+      <!-- Estado: solo se envía en modo edición (el body de POST no lo trae);
+           queda oculto en alta para no inducir a error. -->
+      <div class="campo" [class.campo--oculto]="!modoEdicion()">
+        <label for="partido-estado">Estado</label>
+        <select id="partido-estado" formControlName="estado">
+          @for (e of estados; track e) {
+            <option [value]="e">{{ e }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="acciones">
+      <button class="boton boton--primario" type="submit" [disabled]="enviando()">
+        {{ enviando() ? 'Guardando…' : modoEdicion() ? 'Guardar cambios' : 'Crear partido' }}
+      </button>
+      @if (modoEdicion()) {
+        <button class="boton" type="button" (click)="cancelarEdicion()">Descartar</button>
+      }
+    </div>
+  </form>
+
+  <h3>Listado</h3>
+
+  @if (errorLista(); as mensaje) {
+    <p class="alerta" role="alert">{{ mensaje }}</p>
+  }
+
+  @if (cargando()) {
+    <p class="estado-vacio" role="status">Cargando partidos…</p>
+  } @else if (partidos().length === 0 && !errorLista()) {
+    <p class="estado-vacio">Aún no hay partidos. Crea el primero con el formulario de arriba.</p>
+  } @else if (partidos().length > 0) {
+    <div class="tarjetas">
+      @for (p of partidos(); track p.id) {
+        <article class="tarjeta">
+          <div class="tarjeta__cabecera">
+            <h3>{{ p.rival }}</h3>
+            <app-chip-estado [estado]="p.estado" />
+          </div>
+          <p class="tarjeta__datos">{{ p.fecha }} · {{ p.hora }} · {{ p.escenario }}</p>
+
+          <div class="acciones">
+            <button class="boton" type="button" (click)="editarPartido(p)">Editar</button>
+            <button
+              class="boton"
+              type="button"
+              (click)="cancelarPartido(p)"
+              [disabled]="p.estado === 'CANCELADO'"
+            >
+              Cancelar partido
+            </button>
+            <button class="boton" type="button" (click)="abrirGestion(p)">
+              {{ gestionandoId() === p.id ? 'Cerrar gestión de localidades' : 'Gestionar localidades' }}
+            </button>
+          </div>
+
+          @if (gestionandoId() === p.id) {
+            <!-- Vista de localidades del partido seleccionado: carga / vacío / error -->
+            <section class="gestion">
+              <div class="gestion__cabecera">
+                <h4>Localidades · {{ p.rival }}</h4>
+                <button class="boton" type="button" (click)="cerrarGestion()">Cerrar</button>
+              </div>
+
+              @if (exitoLocalidad(); as mensaje) {
+                <p class="alerta alerta--ok" role="status">{{ mensaje }}</p>
+              }
+              @if (errorLocalidad(); as mensaje) {
+                <p class="alerta" role="alert">{{ mensaje }}</p>
+              }
+
+              <form
+                class="formulario form-localidad"
+                [formGroup]="formLocalidad"
+                (ngSubmit)="guardarLocalidad()"
+                novalidate
+              >
+                <h5>{{ formLocalidad.controls.id.value === null ? 'Crear localidad' : 'Editar localidad' }}</h5>
+
+                <div class="grid-campos">
+                  <div class="campo">
+                    <label for="localidad-nombre">Nombre</label>
+                    <input id="localidad-nombre" type="text" formControlName="nombre" placeholder="Ej. General" />
+                    @if (mostrarErrorLocalidad('nombre', 'required')) {
+                      <p class="campo__error">El nombre es obligatorio.</p>
+                    }
+                  </div>
+
+                  <div class="campo">
+                    <label for="localidad-precio">Precio (COP)</label>
+                    <input id="localidad-precio" type="number" min="1" step="any" formControlName="precio" />
+                    @if (mostrarErrorLocalidad('precio', 'required')) {
+                      <p class="campo__error">El precio es obligatorio.</p>
+                    }
+                    @if (mostrarErrorLocalidad('precio', 'min')) {
+                      <p class="campo__error">El precio debe ser mayor a 0.</p>
+                    }
+                  </div>
+
+                  <div class="campo">
+                    <label for="localidad-cupo">Cupo</label>
+                    <input id="localidad-cupo" type="number" min="1" step="1" formControlName="cupo" />
+                    @if (mostrarErrorLocalidad('cupo', 'required')) {
+                      <p class="campo__error">El cupo es obligatorio.</p>
+                    }
+                    @if (mostrarErrorLocalidad('cupo', 'min')) {
+                      <p class="campo__error">El cupo debe ser al menos 1.</p>
+                    }
+                  </div>
+                </div>
+
+                <div class="acciones">
+                  <button class="boton boton--primario" type="submit" [disabled]="guardandoLocalidad()">
+                    {{
+                      guardandoLocalidad()
+                        ? 'Guardando…'
+                        : formLocalidad.controls.id.value === null
+                          ? 'Crear localidad'
+                          : 'Guardar cambios'
+                    }}
+                  </button>
+                  @if (formLocalidad.controls.id.value !== null) {
+                    <button class="boton" type="button" (click)="descartarEdicionLocalidad()">
+                      Cancelar edición
+                    </button>
+                  }
+                </div>
+
+                <p class="nota">
+                  El cupo no puede quedar por debajo de lo ya vendido: el backend responde 409 y su
+                  mensaje se muestra aquí.
+                </p>
+              </form>
+
+              @if (cargandoDetalle()) {
+                <p class="estado-vacio" role="status">Cargando localidades…</p>
+              } @else if (errorDetalle(); as mensajeError) {
+                <p class="alerta" role="alert">{{ mensajeError }}</p>
+              } @else if (localidades().length === 0) {
+                <p class="estado-vacio">
+                  Este partido aún no tiene localidades. Crea la primera con el formulario.
+                </p>
+              } @else {
+                <table class="tabla-localidades">
+                  <thead>
+                    <tr>
+                      <th>Localidad</th>
+                      <th>Precio</th>
+                      <th>Cupo</th>
+                      <th>Vendidos</th>
+                      <th>Disponibles</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (l of localidades(); track l.id) {
+                      <tr>
+                        <td>{{ l.nombre }}</td>
+                        <td>{{ l.precio | cop }}</td>
+                        <td>{{ l.cupo }}</td>
+                        <td>{{ l.vendidos }}</td>
+                        <td>
+                          @if (l.disponibles === 0) {
+                            <span class="agotado">Agotado</span>
+                          } @else {
+                            {{ l.disponibles }}
+                          }
+                        </td>
+                        <td>
+                          <button class="boton" type="button" (click)="editarLocalidad(l)">Editar</button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </section>
+          } @else if (p.localidades.length === 0) {
+            <p class="estado-vacio">Este partido aún no tiene localidades</p>
+          } @else {
+            <table class="tabla-localidades">
+              <thead>
+                <tr>
+                  <th>Localidad</th>
+                  <th>Precio</th>
+                  <th>Cupo</th>
+                  <th>Vendidos</th>
+                  <th>Disponibles</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of p.localidades; track l.id) {
+                  <tr>
+                    <td>{{ l.nombre }}</td>
+                    <td>{{ l.precio | cop }}</td>
+                    <td>{{ l.cupo }}</td>
+                    <td>{{ l.vendidos }}</td>
+                    <td>
+                      @if (l.disponibles === 0) {
+                        <span class="agotado">Agotado</span>
+                      } @else {
+                        {{ l.disponibles }}
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          }
+        </article>
+      }
+    </div>
+  }
+</section>

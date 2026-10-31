@@ -1,0 +1,35 @@
+.reporte__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.filtros__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+
+  select {
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio);
+    background: #fff;
+    font-size: 0.95rem;
+    min-width: 16rem;
+  }
+}
+
+.reporte__nota {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+}
+
+.tabla-reporte tfoot th {
+  color: var(--color-texto);
+  font-weight: 700;
+}

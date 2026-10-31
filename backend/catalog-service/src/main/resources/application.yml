@@ -5,7 +5,7 @@ spring:
   application:
     name: catalog-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/boleteria}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/boleteria}
     username: ${DB_USER:boleteria}
     password: ${DB_PASSWORD:boleteria}
   jpa:
