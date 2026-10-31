@@ -237,3 +237,13 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   de E2E).
 - 2026-10-31 (datos): se borró el partido duplicado `E2E United FC` id=4 (PROGRAMADO, sin
   hora/escenario/localidades) y se conservó el id=5 (CANCELADO, con localidad y reserva).
+- 2026-10-31 (review concurrencia): `Reserva` no tenía `@Version`: dos pagos simultáneos chocaban
+  con `UNIQUE(reserva_id)` y caían en **500** (no había mapeo de `DataIntegrityViolationException`).
+  Fix: `@Version` + migración `V3__version_reservas.sql` + mapeo en `common` de
+  `OptimisticLockingFailureException` y `DataIntegrityViolationException` → **409**.
+- 2026-10-31 (review concurrencia): en `cancelar`, la compensación a catalog iba **ANTES** de
+  persistir el estado; un pago concurrente podía dejar la reserva **CONFIRMED con el cupo ya
+  liberado**. Fix: `cancelar(); saveAndFlush(); liberarCupo()`. Regla: **flush del cambio de
+  estado antes de cualquier efecto externo**; si el efecto falla, la transacción revierte el estado.
+- 2026-10-31 (build): `common` no declaraba `spring-tx` y las excepciones `org.springframework.dao.*`
+  no compilaban; se añadió `spring-tx` al pom de common (versión del BOM de Boot).

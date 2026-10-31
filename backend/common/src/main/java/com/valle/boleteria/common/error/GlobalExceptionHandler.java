@@ -3,6 +3,8 @@ package com.valle.boleteria.common.error;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -67,6 +69,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> denegado(AccessDeniedException ex, HttpServletRequest req) {
         return responder(HttpStatus.FORBIDDEN, "No tiene permisos para este recurso", req);
+    }
+
+    /**
+     * Dos transacciones compitieron por la misma reserva (@Version): el perdedor
+     * debe reintentar; es un conflicto de negocio, no un 500.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> bloqueoOptimista(OptimisticLockingFailureException ex, HttpServletRequest req) {
+        log.warn("409 conflicto de versión en {} {}", req.getMethod(), req.getRequestURI());
+        return responder(HttpStatus.CONFLICT, "La operación chocó con otra en curso; reintente", req);
+    }
+
+    /**
+     * Restricciones de integridad (UNIQUE de entrada por reserva, CHECK de cupo):
+     * también son conflictos de negocio → 409, nunca 500.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> integridad(DataIntegrityViolationException ex, HttpServletRequest req) {
+        log.warn("409 violación de integridad en {} {}: {}", req.getMethod(), req.getRequestURI(),
+                ex.getMostSpecificCause().getMessage());
+        return responder(HttpStatus.CONFLICT, "Conflicto de integridad de datos", req);
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
