@@ -1,82 +1,8 @@
-.detalle__datos {
-  color: var(--color-texto-suave);
-  margin: 0.25rem 0 0.75rem;
+.tabla-envoltura {
+  padding: 0.5rem 0.6rem;
+  overflow-x: auto;
 }
 
-.volver {
-  display: inline-block;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
-}
-
-.tabla-localidades {
-  margin-top: 0.5rem;
-}
-
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* Panel del flujo de compra (tarea 4.4) */
 .compra {
   margin-top: 1.5rem;
-
-  .compra__titulo {
-    margin-top: 0;
-  }
-
-  .compra__resumen {
-    color: var(--color-texto-suave);
-
-    p {
-      margin: 0.25rem 0;
-    }
-  }
-
-  .compra__formulario {
-    max-width: 320px;
-  }
-
-  .compra__total {
-    font-size: 1.05rem;
-    margin: 0;
-  }
-
-  .compra__nota {
-    font-size: 0.85rem;
-    font-style: italic;
-  }
-
-  .compra__acciones {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-    margin-top: 0.75rem;
-  }
-
-  .compra__codigo {
-    font-size: 1.1rem;
-
-    strong {
-      font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
-      font-size: 1.25rem;
-      letter-spacing: 0.08em;
-      color: var(--color-primario);
-      background: #eef3fb;
-      padding: 0.2rem 0.5rem;
-      border-radius: var(--radio);
-      user-select: all;
-    }
-  }
-
-  .compra__fecha {
-    color: var(--color-texto-suave);
-    font-size: 0.9rem;
-    margin-top: 0;
-  }
-}
-
-a.boton {
-  text-decoration: none;
 }

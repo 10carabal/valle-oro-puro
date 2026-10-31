@@ -1,7 +1,12 @@
 <section class="pantalla">
   <header class="pantalla__cabecera">
-    <h1>Mis entradas</h1>
-    <button class="boton" type="button" (click)="cargar()" [disabled]="cargando()">Actualizar</button>
+    <div>
+      <h1>Mis entradas</h1>
+      <p class="pantalla__intro">Tus reservas y los códigos de entrada emitidos.</p>
+    </div>
+    <button class="boton boton--secundario" type="button" (click)="cargar()" [disabled]="cargando()">
+      Actualizar
+    </button>
   </header>
 
   @if (error(); as mensajeError) {
@@ -47,7 +52,7 @@
             }
             @if (puedeCancelar(reserva)) {
               <button
-                class="boton"
+                class="boton boton--texto"
                 type="button"
                 (click)="cancelar(reserva)"
                 [disabled]="procesando() === reserva.id"
@@ -64,7 +69,7 @@
   } @else {
     <p class="estado-vacio">Aún no tienes entradas</p>
     <p class="mis-entradas__vacio-accion">
-      <a routerLink="/partidos">Ver partidos disponibles →</a>
+      <a routerLink="/partidos">Ver partidos disponibles</a>
     </p>
   }
 </section>

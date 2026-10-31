@@ -1,6 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { mensajeApi } from '../../core/models/api-error';
 import { AuthService } from '../../core/services/auth.service';
@@ -8,7 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
 /** Registro con formulario reactivo: 409 → "Ese email ya está registrado"; éxito → /login. */
 @Component({
   selector: 'app-registro',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MatFormFieldModule, MatInputModule, MatButtonModule],
   templateUrl: './registro.html',
   styleUrl: './registro.scss',
 })

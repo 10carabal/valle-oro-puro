@@ -236,3 +236,24 @@ filtros avanzados → script demo. Nunca lo intocable.
   `feat/purchase-flow`, `chore/concurrency-demo`, `docs/readme`, `docs/day-4-closeout`.
 - **Prueba de integridad**: `git diff main wip/day4-pending` vacío → `main` replica exactamente el
   estado final de la prueba.
+
+### Extra — Valor agregado frontend (2026-10-31)
+
+Fuera del alcance original (los 6 bloques ya estaban cerrados); se suma como diferencial de diseño.
+
+- [x] Skill **`frontend-design`** (anthropics) instalado y aplicado al rediseño.
+- [x] Identidad deportiva **rojo/blanco** del Valle del Cauca con sistema de tokens en `styles.scss`
+  (rojo `#C8102E`, tinta cálida, grises y semánticos; tipografía **Barlow Condensed + Barlow** con
+  fallback a fuentes del sistema si no hay red).
+- [x] Los **7 tips de Refactoring UI** aplicados: jerarquía por peso/color (no tamaño), blanco con
+  opacidad sobre rojo (nunca gris sobre color), sombras con offset vertical, tablas/tarjetas sin
+  bordes, iconos pequeños dentro de shapes, bordes de acento rojos (franja del header, alertas,
+  nav activa) y jerarquía de botones (sólido / outline / texto; destructivos como texto).
+- [x] **Angular Material 22 (MIT)** en las pantallas de acceso (`mat-form-field`, `mat-flat-button`)
+  con tema M3 derivado de la paleta roja (`mat.theme` + `mat.$red-palette`).
+- [x] Pantallas rediseñadas: shell, lista (bloque de fecha tipo talonario), detalle + compra,
+  mis entradas (tickets), login/registro y panel admin.
+- [x] Contratos de pruebas preservados: `ng build` **SUCCESS** (304 kB inicial) · `ng test` **56/56**.
+- Nota de decisión: **PrimeNG 22 descartado** — desde su v22 exige licencia PrimeUI (banner
+  "Invalid PrimeUI License" sin clave y prohibición de publicar la clave en repos públicos); la
+  última versión MIT (21) no declara soporte para Angular 22.

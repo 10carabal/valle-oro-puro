@@ -2,58 +2,87 @@
   @if (cargando()) {
     <p class="estado-vacio" role="status">Cargando partido…</p>
   } @else if (partido(); as p) {
-    <header class="tarjeta__cabecera">
+    <a class="volver" routerLink="/partidos">Volver a partidos</a>
+
+    <header class="detalle__cabecera">
       <h1>{{ p.rival }}</h1>
       <app-chip-estado [estado]="p.estado" />
     </header>
 
-    <p class="detalle__datos">{{ p.fecha }} · {{ p.hora }} · {{ p.escenario }}</p>
-
-    <a class="volver" routerLink="/partidos">← Volver a partidos</a>
+    <dl class="datos-partido">
+      <div>
+        <dt>Fecha</dt>
+        <dd>{{ p.fecha }}</dd>
+      </div>
+      <div>
+        <dt>Hora</dt>
+        <dd>{{ p.hora }}</dd>
+      </div>
+      <div>
+        <dt>Escenario</dt>
+        <dd>{{ p.escenario }}</dd>
+      </div>
+    </dl>
 
     <h2>Localidades</h2>
 
-    <table class="tabla-localidades">
-      <thead>
-        <tr>
-          <th>Localidad</th>
-          <th>Precio</th>
-          <th>Cupo</th>
-          <th>Vendidos</th>
-          <th>Disponibles</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (l of p.localidades; track l.id) {
+    <div class="tarjeta tabla-envoltura">
+      <table class="tabla-localidades">
+        <thead>
           <tr>
-            <td>{{ l.nombre }}</td>
-            <td>{{ l.precio | cop }}</td>
-            <td>{{ l.cupo }}</td>
-            <td>{{ l.vendidos }}</td>
-            <td>
-              @if (l.disponibles === 0) {
-                <span class="agotado">Agotado</span>
-              } @else {
-                {{ l.disponibles }}
-              }
-            </td>
-            <td>
-              <!-- tarea 4.4: flujo de compra (sales-service): seleccionar localidad →
-                   cantidad → POST /api/sales/reservas → pagar → código de entrada. -->
-              @if (l.disponibles === 0) {
-                <button class="boton boton--primario" type="button" disabled>Agotado</button>
-              } @else {
-                <button class="boton boton--primario" type="button" (click)="comprar(l)">Comprar</button>
-              }
-            </td>
+            <th>Localidad</th>
+            <th>Precio</th>
+            <th>Cupo</th>
+            <th>Vendidos</th>
+            <th>Disponibles</th>
+            <th></th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (l of p.localidades; track l.id) {
+            <tr>
+              <td>{{ l.nombre }}</td>
+              <td>{{ l.precio | cop }}</td>
+              <td>{{ l.cupo }}</td>
+              <td>{{ l.vendidos }}</td>
+              <td>
+                @if (l.disponibles === 0) {
+                  <span class="agotado">Agotado</span>
+                } @else {
+                  {{ l.disponibles }}
+                }
+              </td>
+              <td>
+                <!-- tarea 4.4: flujo de compra (sales-service): seleccionar localidad →
+                     cantidad → POST /api/sales/reservas → pagar → código de entrada. -->
+                @if (l.disponibles === 0) {
+                  <button class="boton boton--primario" type="button" disabled>Agotado</button>
+                } @else {
+                  <button class="boton boton--primario" type="button" (click)="comprar(l)">Comprar</button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
     @if (paso(); as pasoActual) {
       <section class="compra tarjeta" aria-label="Flujo de compra">
+        <nav class="compra__pasos" aria-label="Pasos de la compra">
+          <span class="compra__paso" [class.compra__paso--activo]="pasoActual === 1">
+            <span class="compra__paso-num">1</span> Cantidad
+          </span>
+          <span class="compra__paso-sep" aria-hidden="true"></span>
+          <span class="compra__paso" [class.compra__paso--activo]="pasoActual === 2">
+            <span class="compra__paso-num">2</span> Pago
+          </span>
+          <span class="compra__paso-sep" aria-hidden="true"></span>
+          <span class="compra__paso" [class.compra__paso--activo]="pasoActual === 3">
+            <span class="compra__paso-num">3</span> Entrada
+          </span>
+        </nav>
+
         @if (pasoActual === 1) {
           <h2 class="compra__titulo">Paso 1 · Elegir cantidad</h2>
 
@@ -97,7 +126,7 @@
                 >
                   {{ cargandoCompra() ? 'Reservando…' : 'Reservar' }}
                 </button>
-                <button class="boton" type="button" (click)="cerrarPanel()" [disabled]="cargandoCompra()">
+                <button class="boton boton--texto" type="button" (click)="cerrarPanel()" [disabled]="cargandoCompra()">
                   Cerrar
                 </button>
               </div>
@@ -139,7 +168,7 @@
 
           <div class="compra__acciones">
             <a class="boton boton--primario" routerLink="/mis-entradas">Ver mis entradas</a>
-            <button class="boton" type="button" (click)="cerrarPanel()">Cerrar</button>
+            <button class="boton boton--texto" type="button" (click)="cerrarPanel()">Cerrar</button>
           </div>
         }
       </section>

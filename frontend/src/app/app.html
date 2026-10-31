@@ -1,5 +1,8 @@
 <header class="navbar">
-  <a routerLink="/partidos" class="navbar__marca">🏀 Boletería Valle del Cauca</a>
+  <a routerLink="/partidos" class="navbar__marca">
+    <span class="navbar__pelota" aria-hidden="true">🏀</span>
+    <span class="navbar__titulo">Boletería <strong>Valle del Cauca</strong></span>
+  </a>
 
   <nav class="navbar__enlaces">
     <a routerLink="/partidos" routerLinkActive="activo">Partidos</a>
@@ -18,7 +21,7 @@
       </span>
       <button class="boton boton--salir" type="button" (click)="auth.logout()">Salir</button>
     } @else {
-      <a routerLink="/login">Ingresar</a>
+      <a routerLink="/login" class="navbar__ingresar">Ingresar</a>
       <a routerLink="/registro" class="boton boton--primario navbar__registro">Registro</a>
     }
   </nav>
