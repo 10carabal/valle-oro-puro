@@ -40,14 +40,110 @@
             </td>
             <td>
               <!-- tarea 4.4: flujo de compra (sales-service): seleccionar localidad →
-                   cantidad → POST /api/sales/reservas → pagar → código de entrada.
-                   El backend aún no existe; el botón queda listo para conectar. -->
-              <button class="boton boton--primario" type="button" disabled>Comprar</button>
+                   cantidad → POST /api/sales/reservas → pagar → código de entrada. -->
+              @if (l.disponibles === 0) {
+                <button class="boton boton--primario" type="button" disabled>Agotado</button>
+              } @else {
+                <button class="boton boton--primario" type="button" (click)="comprar(l)">Comprar</button>
+              }
             </td>
           </tr>
         }
       </tbody>
     </table>
+
+    @if (paso(); as pasoActual) {
+      <section class="compra tarjeta" aria-label="Flujo de compra">
+        @if (pasoActual === 1) {
+          <h2 class="compra__titulo">Paso 1 · Elegir cantidad</h2>
+
+          @if (localidadCompra(); as l) {
+            <div class="compra__resumen">
+              <p><strong>{{ l.nombre }}</strong> · {{ l.precio | cop }} por entrada</p>
+              <p>Disponibles: {{ l.disponibles }}</p>
+            </div>
+
+            <form class="formulario compra__formulario" (ngSubmit)="reservar()">
+              <div class="campo">
+                <label for="cantidad">Cantidad de entradas</label>
+                <input
+                  id="cantidad"
+                  name="cantidad"
+                  type="number"
+                  min="1"
+                  [max]="l.disponibles"
+                  required
+                  [formControl]="formCantidad"
+                />
+                @if (errorCantidad(); as mensajeCantidad) {
+                  <p class="campo__error" role="alert">{{ mensajeCantidad }}</p>
+                }
+              </div>
+
+              <p class="compra__total">
+                Total: <strong>{{ total() | cop }}</strong>
+              </p>
+
+              @if (errorCompra(); as mensajeError) {
+                <p class="alerta" role="alert">{{ mensajeError }}</p>
+              }
+
+              <div class="compra__acciones">
+                <button
+                  class="boton boton--primario"
+                  type="button"
+                  (click)="reservar()"
+                  [disabled]="cargandoCompra()"
+                >
+                  {{ cargandoCompra() ? 'Reservando…' : 'Reservar' }}
+                </button>
+                <button class="boton" type="button" (click)="cerrarPanel()" [disabled]="cargandoCompra()">
+                  Cerrar
+                </button>
+              </div>
+            </form>
+          }
+        } @else if (pasoActual === 2) {
+          <h2 class="compra__titulo">Paso 2 · Confirmar pago (simulado)</h2>
+
+          @if (localidadCompra(); as l) {
+            <div class="compra__resumen">
+              <p><strong>{{ l.nombre }}</strong> · {{ reserva()?.rival }}</p>
+              <p>Entradas: {{ reserva()?.cantidad }} · Total: {{ reserva()?.total | cop }}</p>
+              <p class="compra__nota">El pago es simulado: al confirmar se emite tu código de entrada.</p>
+            </div>
+          }
+
+          @if (errorPago(); as mensajePago) {
+            <p class="alerta" role="alert">{{ mensajePago }}</p>
+          }
+
+          <div class="compra__acciones">
+            <button class="boton boton--primario" type="button" (click)="pagar()" [disabled]="cargandoPago()">
+              {{ cargandoPago() ? 'Procesando pago…' : 'Pagar ahora' }}
+            </button>
+          </div>
+        } @else {
+          <h2 class="compra__titulo">Paso 3 · ¡Compra confirmada!</h2>
+
+          <p class="alerta alerta--ok" role="status">
+            Tu reserva fue pagada y tu entrada quedó emitida.
+          </p>
+
+          @if (entrada(); as e) {
+            <p class="compra__codigo">
+              Código de entrada: <strong>{{ e.codigo }}</strong>
+            </p>
+            <p class="compra__fecha">Emitida el {{ e.emitidaEn }}</p>
+          }
+
+          <div class="compra__acciones">
+            <a class="boton boton--primario" routerLink="/mis-entradas">Ver mis entradas</a>
+            <button class="boton" type="button" (click)="cerrarPanel()">Cerrar</button>
+          </div>
+        }
+      </section>
+    }
   } @else {
     <p class="estado-vacio">No encontramos ese partido.</p>
   }

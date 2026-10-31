@@ -1,9 +1,11 @@
 import { Routes } from '@angular/router';
 import { adminGuard } from './core/guards/admin.guard';
+import { authGuard } from './core/guards/auth.guard';
 
 /**
  * Router standalone. Las pantallas se cargan con lazy loading (loadComponent).
- * Guards: adminGuard protege /admin (sin sesión → /login; USER → /partidos).
+ * Guards: adminGuard protege /admin (sin sesión → /login; USER → /partidos);
+ * authGuard protege /mis-entradas (sin sesión → /login?returnUrl=…).
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'partidos' },
@@ -46,7 +48,13 @@ export const routes: Routes = [
       },
     ],
   },
-  // Flujo de compra (tarea 4.4, sales-service): se añadirá ruta/componente aquí cuando existan
-  // los endpoints de reservas.
+  {
+    // Tarea 4.4: pantalla "Mis entradas" (reservas y códigos del usuario).
+    path: 'mis-entradas',
+    title: 'Mis entradas · Boletería Valle',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/mis-entradas/mis-entradas').then((m) => m.MisEntradas),
+  },
+  // El flujo de compra vive en el detalle del partido (tarea 4.4).
   { path: '**', redirectTo: 'partidos' },
 ];
