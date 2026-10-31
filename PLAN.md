@@ -88,23 +88,36 @@ filtros avanzados → script demo. Nunca lo intocable.
 
 ## Día 2 — sales-service + caso crítico
 
-### Bloque 3 — sales-service (primero lo intocable)
-- [ ] 3.1 Módulo `sales-service`: entidades `reservas` (con `partido_id` + `rival_snapshot` desnormalizado,
+### Bloque 3 — sales-service (primero lo intocable) — ✅ COMPLETO (2026-10-28)
+- [x] 3.1 Módulo `sales-service`: entidades `reservas` (con `partido_id` + `rival_snapshot` desnormalizado,
     estado PENDING/CONFIRMED/REJECTED/CANCELLED) y `entradas` (`codigo_unico UNIQUE`); migraciones + índices
     `reservas(user_id)`, `reservas(localidad_id, estado)`
-  - Verificación: `./mvnw -q test` pasa; tablas e índices visibles en `psql`
-- [ ] 3.2 Saga de reserva: `POST /reservas` (PENDING → llama `catalog` con `RestClient` → UPDATE atómico;
+  - Verificación: `./mvnw -q test` pasa; tablas e índices visibles en `psql` ✅
+  - `entradas.reserva_id` además UNIQUE (1 entrada por reserva); índices: `reservas(usuario_email)`,
+    `reservas(localidad_id, estado)`, `reservas(partido_id)` — todos justificados en comentarios SQL
+- [x] 3.2 Saga de reserva: `POST /reservas` (PENDING → llama `catalog` con `RestClient` → UPDATE atómico;
     si 409 → REJECTED/409) → `POST /reservas/{id}/pagar` (pago simulado → CONFIRMED + entrada con UUID)
     → cancelación libera cupo (compensación)
-  - Verificación: flujo completo por curl: reserva → pagar → entrada con código; cancelar libera (`vendidos` baja)
-- [ ] 3.3 **Native Query** de reporte: cantidad vendida y total recaudado por partido y localidad
+  - Verificación: flujo completo por curl: reserva → pagar → entrada con código; cancelar libera (`vendidos` baja) ✅
+  - Detalle: REJECTED se persiste en transacción `REQUIRES_NEW` (trazabilidad) antes de propagar el 409;
+    el Bearer del usuario se reenvía a catalog (propagación de JWT); `pagar` → 200; `hikari.pool=40`
+    solo en el test de concurrencia (cada hilo perdedor ocupa 2 conexiones por el REQUIRES_NEW)
+- [x] 3.3 **Native Query** de reporte: cantidad vendida y total recaudado por partido y localidad
     (`COUNT`, `SUM`, `GROUP BY` sobre `reservas`+`entradas` dentro del esquema `sales`) + endpoint admin
-  - Verificación: con seed, el reporte devuelve las filas esperadas (test con assert exacto)
-- [ ] 3.4 **Tests de concurrencia (Testcontainers)**: 2 hilos y 20 hilos comprando la última entrada
+  - Verificación: con seed, el reporte devuelve las filas esperadas (test con assert exacto) ✅
+  - `GET /api/sales/reportes/ventas?partidoId=` (ADMIN): solo CONFIRMED cuenta; CANCELLED/REJECTED no
+- [x] 3.4 **Tests de concurrencia (Testcontainers)**: 2 hilos y 20 hilos comprando la última entrada
     vía el flujo de `sales` → exactamente `cupo` éxitos y el resto 409, `vendidos == cupo`
-  - Verificación: `./mvnw test` en verde, ambas pruebas; resultados anotados aquí
-- [ ] 3.5 Cancelación de partido (ADMIN) → cancela reservas/entradas asociadas y libera cupos
-  - Verificación: curl cancelar partido → reservas CANCELLED en el reporte
+  - Verificación: `./mvnw test` en verde, ambas pruebas; resultados anotados aquí ✅
+  - `ConcurrenciaCompraTest`: 10 hilos con barrera sobre cupo=1 (mock CAS replicando el contrato de
+    catalog) → **1 CONFIRMED + 9 REJECTED, exactamente 1 entrada**; la garantía fuerte vive en el
+    `ConcurrenciaCupoTest` de catalog (Postgres real) y se demuestra end-to-end con el script 6.2
+- [x] 3.5 Cancelación de partido (ADMIN) → cancela reservas/entradas asociadas y libera cupos
+  - Backend: `POST /api/sales/reservas/cancelar-por-partido/{partidoId}` → `{canceladas: n}` con
+    liberación de cupo por compensación ✅ (frontend en tarea 5.2 del agente F)
+  - Verificación: curl cancelar partido → reservas CANCELLED en el reporte ✅ (test 5/8)
+  - Resultado: **8/8 tests en verde** ✅ 2026-10-28 · verificación conjunto: reactor completo
+    `mvnw -B test` → **BUILD SUCCESS, 28/28 tests backend** (auth 9 + catalog 11 + sales 8)
 
 ## Día 3 — Angular
 

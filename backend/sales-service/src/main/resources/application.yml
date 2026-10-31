@@ -1,0 +1,36 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: sales-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/boleteria}
+    username: ${DB_USER:boleteria}
+    password: ${DB_PASSWORD:boleteria}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # el esquema lo define Flyway; Hibernate solo valida
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: sales
+  flyway:
+    schemas: [sales]
+
+# HS256 exige >= 32 bytes; el valor por defecto cumple (41 bytes). El MISMO secreto
+# lo comparten auth (emisor) y catalog/sales (validadores): ver common.JwtService.
+jwt:
+  secret: ${JWT_SECRET:demo-secret-para-jwt-hs256-de-32-bytes!!}
+
+# Catálogo (dueño del inventario). sales ORQUESTA: reenvía el Bearer del usuario
+# y delega la anti-sobreventa en el UPDATE atómico de catalog.
+sales:
+  catalog:
+    url: ${SALES_CATALOG_URL:http://localhost:8082}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

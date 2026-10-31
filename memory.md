@@ -47,9 +47,16 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 - POST `/api/catalog/localidades/{id}/reservar` authenticated → `CupoResponse` o **409 sin cupo**
 - POST `/api/catalog/localidades/{id}/liberar` authenticated → `CupoResponse`
 
-**sales-service (:8083) — dueño: pendiente (bloque 3)**
-- Definirá: POST `/api/sales/reservas`, POST `.../{id}/pagar`, POST `.../{id}/cancelar`,
-  POST `/api/sales/reservas/cancelar-por-partido/{partidoId}` (ADMIN), GET reporte (Native Query)
+**sales-service (:8083) — dueño: agente D (en implementación), contrato fijado por el coordinador**
+- POST `/api/sales/reservas` {localidadId, cantidad} autenticada → 201 {reservaId, estado, localidadId,
+  cantidad, total, partidoId, rival} · **409** si catalog no tiene cupo
+- POST `/api/sales/reservas/{id}/pagar` (dueño) → CONFIRMED + `entrada:{codigo UUID, emitidaEn}` ·
+  403 otro usuario · 409 si no está PENDING
+- POST `/api/sales/reservas/{id}/cancelar` (dueño/ADMIN) → CANCELLED + libera cupo en catalog
+- POST `/api/sales/reservas/cancelar-por-partido/{partidoId}` **ADMIN** → `{canceladas: n}`
+- GET `/api/sales/reservas` (autenticada) → reservas del usuario con su entrada
+- GET `/api/sales/reportes/ventas?partidoId=` **ADMIN** → filas
+  `{partidoId, rival, localidadId, cantidadVendida, totalRecaudado}` (Native Query, solo CONFIRMED)
 
 **Common (`backend/common`) — quien lo modifique, avisa al equipo ANTES**
 - `error.ApiError` + `error.GlobalExceptionHandler` (404/409/400/401/403/500 en JSON uniforme)
@@ -134,3 +141,15 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 - 2026-10-28 (agente B): en Hibernate 6.6 + PostgreSQL, un parámetro `LocalDate` NULO en JPQL
   falla con `42P18 could not determine data type` salvo que se declare el tipo:
   `CAST(:fecha AS java.time.LocalDate)`. El parámetro de enum NO necesita cast.
+- 2026-10-28 (agente D): en Spring 6.2, `MockRestRequestMatchers.jsonPath(...)` devuelve un
+  matcher encadenable: `.andExpect(jsonPath("$.x").value(1))` — pasar el matcher directo a
+  `.andExpect(...)` no compila. Ojo con el choque de import estático `jsonPath` entre MockMvc y
+  MockRest.
+- 2026-10-28 (agente D): un `mvnw test` que falla en `testCompile` deja clases stale en
+  `target/test-classes` que la siguiente ejecución reutiliza ("Nothing to compile"); ante tests
+  incoherentes con el código actual, borrar `backend/<módulo>/target` y reintentar.
+- 2026-10-28 (agente D): en tests que comparten BD dentro de una clase, aislar los datos por
+  `usuario_email`/partido propio (o `deleteAll` al inicio) en vez de aserciones globales con `findAll()`.
+- 2026-10-28 (agente D): persistir la reserva `REJECTED` requiere transacción `REQUIRES_NEW`
+  (el rollback del 409 borraría el registro); por eso el pool Hikari sube a 40 SOLO en el test
+  multihilo de sales (cada hilo perdedor usa 2 conexiones).
