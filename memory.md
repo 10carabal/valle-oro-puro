@@ -128,3 +128,9 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   Quien implemente 4.4/5.x reutiliza ESOS archivos y no crea estructura paralela.
 - 2026-10-28 (agente C): Angular 22 trae **Vitest** como runner por defecto; los comandos de
   verificación del frontend son `npx ng build` y `npx ng test --watch=false` (sin Karma).
+- 2026-10-28 (agente B): builds Maven CONCURRENTES del mismo módulo se pisan (`target/classes`
+  compartido y migraciones Flyway "ausentes" en el primer contexto). Si un test falla de forma
+  rara estando otro agente compilando, RE-EJECUTAR antes de investigar: puede ser solo el solape.
+- 2026-10-28 (agente B): en Hibernate 6.6 + PostgreSQL, un parámetro `LocalDate` NULO en JPQL
+  falla con `42P18 could not determine data type` salvo que se declare el tipo:
+  `CAST(:fecha AS java.time.LocalDate)`. El parámetro de enum NO necesita cast.

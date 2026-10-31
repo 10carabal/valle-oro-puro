@@ -65,18 +65,26 @@ filtros avanzados → script demo. Nunca lo intocable.
     usuario@valle.test/usuario123. Hallazgo: conflicto jjwt-bom↔jackson resuelto centralizando
     `jackson-bom` antes que `jjwt-bom` en el pom padre (ver memory.md §7).
 
-### Bloque 2 — catalog-service 🅿️ (agente B)
-- [ ] 2.1 Módulo `catalog-service`: entidades `partidos` y `localidades` + migraciones
+### Bloque 2 — catalog-service 🅿️ (agente B) — ✅ COMPLETO (2026-10-28)
+- [x] 2.1 Módulo `catalog-service`: entidades `partidos` y `localidades` + migraciones
     (`partidos(rival, fecha, hora, escenario, estado)`, `localidades(nombre, precio, cupo, vendidos)`,
     `CHECK vendidos <= cupo`, índices `partidos(fecha, estado)`, `localidades(partido_id)`)
-  - Verificación: `./mvnw -q test` pasa; `psql` muestra tablas + índices + CHECK
-- [ ] 2.2 CRUD de partidos/localidades con rol ADMIN (`POST/PUT/DELETE` → 403 sin rol ADMIN)
-  - Verificación: con token USER un PUT → 403; con token ADMIN → 200
-- [ ] 2.3 **JPQL parametrizada**: filtros por fecha y/o estado + disponibilidad por localidad
-  - Verificación: test de repositorio con los 3 combinaciones (solo fecha, solo estado, ambas)
-- [ ] 2.4 Endpoint de inventario `POST /api/catalog/localidades/{id}/reservar` (UPDATE atómico,
+  - Verificación: `./mvnw -q test` pasa; `psql` muestra tablas + índices + CHECK ✅
+- [x] 2.2 CRUD de partidos/localidades con rol ADMIN (`POST/PUT/DELETE` → 403 sin rol ADMIN)
+  - Verificación: con token USER un PUT → 403; con token ADMIN → 200 ✅ (8 tests de controller;
+    cancelar es lógico `PUT /partidos/{id}/cancelar`, sin DELETE físico)
+- [x] 2.3 **JPQL parametrizada**: filtros por fecha y/o estado + disponibilidad por localidad
+  - Verificación: test de repositorio con los 3 combinaciones (solo fecha, solo estado, ambas) ✅
+  - Query final: `SELECT DISTINCT p FROM Partido p LEFT JOIN FETCH p.localidades l WHERE
+    (:estado IS NULL OR p.estado = :estado) AND (CAST(:fecha AS java.time.LocalDate) IS NULL OR
+    p.fecha = :fecha) ORDER BY p.fecha` — el CAST es obligatorio en Hibernate 6.6 + PG para
+    parámetro LocalDate nulo (error 42P18 sin tipar)
+- [x] 2.4 Endpoint de inventario `POST /api/catalog/localidades/{id}/reservar` (UPDATE atómico,
     0 filas → 409) y `.../liberar` (compensación). Este es el corazón del caso crítico
-  - Verificación: test de integración con hilos: N llamadas sobre cupo=1 → exactamente 1 éxito
+  - Verificación: test de integración con hilos: N llamadas sobre cupo=1 → exactamente 1 éxito ✅
+  - `ConcurrenciaCupoTest`: 10 hilos con barrera de doble CountDownLatch → **1 éxito, 9
+    ConflictException, vendidos==1** sobre Postgres 16 real (Testcontainers)
+  - Resultado: 11/11 tests en verde ✅ 2026-10-28
 
 ## Día 2 — sales-service + caso crítico
 

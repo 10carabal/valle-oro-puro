@@ -1,0 +1,29 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: catalog-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/boleteria}
+    username: ${DB_USER:boleteria}
+    password: ${DB_PASSWORD:boleteria}
+  jpa:
+    hibernate:
+      ddl-auto: validate          # el esquema lo define Flyway; Hibernate solo valida
+    open-in-view: false
+    properties:
+      hibernate:
+        default_schema: catalog
+  flyway:
+    schemas: [catalog]
+
+# HS256 exige >= 32 bytes; el valor por defecto cumple (41 bytes).
+jwt:
+  secret: ${JWT_SECRET:demo-secret-para-jwt-hs256-de-32-bytes!!}
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
