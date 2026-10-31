@@ -83,7 +83,8 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 
 - Spring Boot **3.5.16** (parent) · Java **21** · jjwt BOM **0.12.7** (¡0.12.6 NO existe en Central!)
 - springdoc **2.8.13** · Flyway con `flyway-database-postgresql` · Testcontainers BOM 1.21.x (Boot)
-- PostgreSQL **16-alpine** · Angular: último estable (crear con `ng new`)
+- PostgreSQL **16-alpine** · Angular **22.2.3** (standalone + signals, `ng new --skip-git
+  --style=scss --ssr=false`, tests con **Vitest**: `npx ng test --watch=false`; Karma ya no existe)
 - **Trampa Jackson (resuelta):** el pom padre importa `jackson-bom` ANTES que `jjwt-bom` porque
   jjwt-bom arrastra `jackson-databind:2.12.7.1` de jjwt-root y rompe el arranque con
   `NoClassDefFoundError: ToEmptyObjectSerializer`. No quitar ni reordenar ese import.
@@ -118,3 +119,12 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   siempre `USER` (el ADMIN solo viene del seed).
 - 2026-10-28 (agente A): generar hashes BCrypt de ejemplo con un test temporal que los imprima,
   pegarlos en `V2__seed` y BORRAR el test (no dejar utilidades de un solo uso en el repo).
+- 2026-10-28 (agente C): convenciones del frontend ya establecidas — proxy **sin pathRewrite**
+  (solo cambia target; los servicios exponen `/api/<servicio>/...`), token en `localStorage`
+  (`basket_token`, `basket_usuario`), helper `mensajeApi()` de `core/models/api-error.ts` para
+  leer el `message` del `ApiError`, pipe `cop` para formatear COP, chips de estado en `shared/`.
+  El shell `/admin` protegido tiene children stubs listos (`admin/partidos`, `admin/reportes`) y
+  el detalle de partido deja el botón de compra deshabilitado con comentario `tarea 4.4`.
+  Quien implemente 4.4/5.x reutiliza ESOS archivos y no crea estructura paralela.
+- 2026-10-28 (agente C): Angular 22 trae **Vitest** como runner por defecto; los comandos de
+  verificación del frontend son `npx ng build` y `npx ng test --watch=false` (sin Karma).

@@ -52,15 +52,18 @@ filtros avanzados → script demo. Nunca lo intocable.
     en las migraciones de cada servicio (usuarios USER/ADMIN, 3 partidos, localidades con cupo)
   - Verificación: al arrancar cada servicio sus migraciones aplican sin error y el seed deja datos
 
-### Bloque 1 — auth-service 🅿️ (agente A)
-- [ ] 1.1 Módulo Maven `auth-service`: entidad `usuarios`, Flyway (`id, email UNIQUE, password_hash, nombre, rol, creado_en`)
-  - Verificación: `./mvnw -q test` pasa con contexto arrancando contra PG de compose
-- [ ] 1.2 Registro (BCrypt) + login que emite JWT HS256 (sub=email, rol, exp) con `jjwt`
-  - Verificación: curl registro → 201; curl login → token; token con rol decodifica correcto
-- [ ] 1.3 Seguridad: filtro JWT propio + `common` de utilidades; endpoints públicos (`/api/auth/**`) vs protegidos
-  - Verificación: petición sin token → 401; con token inválido → 401
-- [ ] 1.4 Manejo centralizado de errores (`@RestControllerAdvice` + `ErrorResponse` en `common`) y validaciones (`@Valid`)
-  - Verificación: email duplicado → 409 con cuerpo JSON de error; body inválido → 400
+### Bloque 1 — auth-service 🅿️ (agente A) — ✅ COMPLETO (2026-10-28)
+- [x] 1.1 Módulo Maven `auth-service`: entidad `usuarios`, Flyway (`id, email UNIQUE, password_hash, nombre, rol, creado_en`)
+  - Verificación: `./mvnw -q test` pasa con contexto arrancando contra PG de compose ✅ (Testcontainers)
+- [x] 1.2 Registro (BCrypt) + login que emite JWT HS256 (sub=email, rol, exp) con `jjwt`
+  - Verificación: curl registro → 201; curl login → token; token con rol decodifica correcto ✅ (test E2E)
+- [x] 1.3 Seguridad: filtro JWT propio + `common` de utilidades; endpoints públicos (`/api/auth/**`) vs protegidos
+  - Verificación: petición sin token → 401; con token inválido → 401 ✅
+- [x] 1.4 Manejo centralizado de errores (`@RestControllerAdvice` + `ErrorResponse` en `common`) y validaciones (`@Valid`)
+  - Verificación: email duplicado → 409 con cuerpo JSON de error; body inválido → 400 ✅
+  - Resultado: 9/9 tests en verde (6 integración + 3 unitarios). Seed admin@valle.test/admin123,
+    usuario@valle.test/usuario123. Hallazgo: conflicto jjwt-bom↔jackson resuelto centralizando
+    `jackson-bom` antes que `jjwt-bom` en el pom padre (ver memory.md §7).
 
 ### Bloque 2 — catalog-service 🅿️ (agente B)
 - [ ] 2.1 Módulo `catalog-service`: entidades `partidos` y `localidades` + migraciones
@@ -97,21 +100,30 @@ filtros avanzados → script demo. Nunca lo intocable.
 
 ## Día 3 — Angular
 
-### Bloque 4 — Angular base + flujo público 🅿️ (agente A)
-- [ ] 4.1 `ng new frontend` (standalone, signals, SCSS), proxy a los 3 puertos, `environment.ts`
-  - Verificación: `ng serve` + proxy → llega a los servicios
-- [ ] 4.2 `auth.service` + interceptor JWT + `authGuard` + `adminGuard` + rutas
-  - Verificación: `/admin` sin sesión redirige a `/login`; con USER redirige; con ADMIN entra
-- [ ] 4.3 Lista de partidos con filtros por fecha y estado + detalle con localidades, precios y disponibilidad
-  - Verificación: filtrar por fecha y por estado muestra resultados del seed
+### Bloque 4 — Angular base + flujo público 🅿️ (agente C)
+- [x] 4.1 `ng new frontend` (standalone, signals, SCSS), proxy a los 3 puertos, `environment.ts`
+  - Nota: Angular **22.2.3**, `--skip-git`, tests con **Vitest** (Karma ya no existe). Proxy SIN
+    pathRewrite: solo cambia el target (`/api/auth`→8081, `/api/catalog`→8082, `/api/sales`→8083)
+  - Verificación: `ng build` → SUCCESS (272 kB inicial) ✅
+- [x] 4.2 `auth.service` + interceptor JWT + `authGuard` + `adminGuard` + rutas
+  - Verificación: `/admin` sin sesión redirige a `/login`; con USER redirige; con ADMIN entra ✅ (5 tests de guards)
+- [x] 4.3 Lista de partidos con filtros por fecha y estado + detalle con localidades, precios y disponibilidad
+  - Verificación: filtrar por fecha y por estado muestra resultados del seed ✅ (estado vacío, "Agotado", pipe COP)
 - [ ] 4.4 Flujo de compra: seleccionar localidad → cantidad → reserva → pago simulado → pantalla con
     código de entrada; 409 mostrado amigable cuando no hay cupo
+  - Bloqueada hasta que sales-service (bloque 3) esté commiteado; el botón en el detalle ya está
+    preparado con comentario `tarea 4.4`
   - Verificación: comprar la última entrada en 2 pestañas → una confirma y la otra ve el 409
+  - Resultado parcial: `ng build` SUCCESS · `ng test` 21/21 en verde ✅ 2026-10-28 (agente C)
 
 ### Bloque 5 — Angular admin 🅿️ (agente B)
-- [ ] 5.1 Login/registro (formularios reactivos + validaciones)
-  - Verificación: registro + login funcionan y guardan el token
+- [x] 5.1 Login/registro (formularios reactivos + validaciones)
+  - Verificación: registro + login funcionan y guardan el token ✅ (formularios con @Email,
+    minLength 6, errores 401/409 con mensaje del ApiError; token en localStorage `basket_token` /
+    `basket_usuario`; login con returnUrl)
 - [ ] 5.2 Panel admin: CRUD de partidos, edición de precios/cupos
+  - El shell `/admin` protegido con children stubs (`admin/partidos`, `admin/reportes`) ya existe
+    (lazy loading): solo sustituir los stubs
   - Verificación: crear y editar un partido desde la UI, el cambio refleja en la lista pública
 - [ ] 5.3 Reporte de ventas por partido (Native Query) en el panel admin
   - Verificación: el reporte muestra cantidad y total del seed
