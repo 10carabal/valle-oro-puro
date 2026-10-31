@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -61,6 +62,15 @@ public class Reserva {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoReserva estado;
+
+    /**
+     * Bloqueo optimista: dos pagos (o un pago y una cancelación) simultáneos sobre
+     * la MISMA reserva no pueden ganar los dos. Hibernate compara la versión en el
+     * UPDATE; el perdedor recibe OptimisticLockingFailureException → 409.
+     */
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;

@@ -116,9 +116,12 @@ public class VentaService {
         if (reserva.getEstado() == EstadoReserva.REJECTED) {
             throw new ConflictException("La reserva fue rechazada (sin cupo) y no puede cancelarse");
         }
+        // PRIMERO el cambio de estado (flush): si otra transacción ganó la reserva,
+        // aquí salta OptimisticLockingFailureException → 409 y NO se toca catalog.
+        reserva.cancelar();
+        reservaRepository.saveAndFlush(reserva);
         // Compensación de la saga: el cupo tomado en catalog se devuelve aquí.
         catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad());
-        reserva.cancelar();
         return ReservaResponse.de(reserva);
     }
 
@@ -131,8 +134,9 @@ public class VentaService {
         List<Reserva> vivas = reservaRepository.findByPartidoIdAndEstadoIn(
                 partidoId, List.of(EstadoReserva.PENDING, EstadoReserva.CONFIRMED));
         for (Reserva reserva : vivas) {
-            catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad());
             reserva.cancelar();
+            reservaRepository.saveAndFlush(reserva); // fija el estado antes de la compensación
+            catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad());
         }
         return new CanceladasResponse(vivas.size());
     }
