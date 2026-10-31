@@ -260,3 +260,8 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   idempotente), mock CAS en el test de sales vs. garantía fuerte en catalog/demo e2e, ventana de
   fuga de cupo si falla el save, `JWT_SECRET` demo y ausencia de rate limiting. Decisión: no
   implementar outbox/saga ni rate limiter por alcance.
+- 2026-10-31 (prueba en vivo): el `psql` del contenedor corre en **UTC** y la JVM en hora local
+  (-05:00). Al envejecer `creado_en` a mano para probar el job de expiración, `now() - interval
+  '30 minutes'` quedó en UTC y NO expiraba; hay que usar `(now() AT TIME ZONE 'America/Bogota')`
+  o un intervalo mayor. La app compara de forma consistente (escribe y lee `LocalDateTime` con su
+  propio reloj).
