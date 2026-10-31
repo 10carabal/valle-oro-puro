@@ -247,3 +247,11 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   estado antes de cualquier efecto externo**; si el efecto falla, la transacción revierte el estado.
 - 2026-10-31 (build): `common` no declaraba `spring-tx` y las excepciones `org.springframework.dao.*`
   no compilaban; se añadió `spring-tx` al pom de common (versión del BOM de Boot).
+- 2026-10-31 (review): las reservas **PENDING nunca expiraban** (cupo retenido para siempre si
+  el usuario no paga). Fix: `ReservaExpiryJob` (`@Scheduled` cada 60 s) expira PENDING con más de
+  `sales.reservas.expiracion.minutos` (10 por defecto, configurable por env) y libera el cupo con
+  token de servicio. Reutiliza `CANCELLED` (sin migración ni cambios de frontend); el barrido es
+  transaccional y reintenta si catalog falla.
+- 2026-10-31 (test): para probar el job sin esperas: `@SpringBootTest(properties =
+  "sales.reservas.expiracion.intervalo-ms=3600000")` neutraliza el `@Scheduled`, `JdbcTemplate`
+  envejece `creado_en` y se llama `expirarPendientes(cutoff)` directamente.

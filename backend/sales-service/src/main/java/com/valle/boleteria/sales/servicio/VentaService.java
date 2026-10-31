@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -139,6 +140,28 @@ public class VentaService {
             catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad());
         }
         return new CanceladasResponse(vivas.size());
+    }
+
+    /**
+     * Expira las reservas PENDING que superaron el tiempo de pago (job programado):
+     * las cancela y devuelve el cupo a catalog.
+     *
+     * <p>Todo corre en UNA transacción: si la compensación de una reserva falla,
+     * no se expira ninguna y el job reintenta en la siguiente pasada (no queda
+     * una reserva CANCELLED con el cupo aún tomado).</p>
+     *
+     * @return número de reservas expiradas
+     */
+    @Transactional
+    public int expirarPendientes(LocalDateTime limite) {
+        List<Reserva> vencidas = reservaRepository.findByEstadoAndCreadoEnBefore(
+                EstadoReserva.PENDING, limite);
+        for (Reserva reserva : vencidas) {
+            reserva.cancelar();
+            reservaRepository.saveAndFlush(reserva); // fija el estado antes de la compensación
+            catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad());
+        }
+        return vencidas.size();
     }
 
     // ------------------------------------------------------------ consultas
