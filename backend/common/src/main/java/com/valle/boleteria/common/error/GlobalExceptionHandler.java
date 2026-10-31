@@ -1,14 +1,18 @@
 package com.valle.boleteria.common.error;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.stream.Collectors;
@@ -19,6 +23,8 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiError> noEncontrado(NotFoundException ex, HttpServletRequest req) {
@@ -36,6 +42,15 @@ public class GlobalExceptionHandler {
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
                 .collect(Collectors.joining("; "));
         return responder(HttpStatus.BAD_REQUEST, campos, req);
+    }
+
+    /**
+     * Cuerpo ilegible: JSON malformado o valor que no convertía (p. ej. fecha no ISO).
+     * Sin este mapeo caía al 500 genérico: es un error del CLIENTE, no del servidor.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> cuerpoIlegible(HttpMessageNotReadableException ex, HttpServletRequest req) {
+        return responder(HttpStatus.BAD_REQUEST, "Cuerpo inválido o ilegible (JSON malformado o valor no convertible)", req);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -59,9 +74,17 @@ public class GlobalExceptionHandler {
         return responder(HttpStatus.METHOD_NOT_ALLOWED, "Método no soportado: " + ex.getMethod(), req);
     }
 
+    /** Ruta que no coincide con ningún controlador ni recurso: 404, no 500. */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> recursoInexistente(NoResourceFoundException ex, HttpServletRequest req) {
+        return responder(HttpStatus.NOT_FOUND, "Recurso no encontrado: " + req.getRequestURI(), req);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> inesperado(Exception ex, HttpServletRequest req) {
-        // Se deja el detalle en el log del servicio; al cliente solo el mensaje genérico.
+        // Spring NO loguea excepciones capturadas por @ExceptionHandler: sin esta línea el 500
+        // queda mudo en el log del servicio. El cliente siempre recibe el mensaje genérico.
+        log.error("500 no controlado en {} {}", req.getMethod(), req.getRequestURI(), ex);
         return responder(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", req);
     }
 

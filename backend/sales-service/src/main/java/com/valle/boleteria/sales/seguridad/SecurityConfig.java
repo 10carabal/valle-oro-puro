@@ -49,11 +49,21 @@ public class SecurityConfig {
                                 .hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> {
-                    res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    res.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    mapper.writeValue(res.getOutputStream(), ApiError.of(401, "Unauthorized",
-                            "No autenticado: envíe un token JWT válido", req.getRequestURI()));
-                }))
+                            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            mapper.writeValue(res.getOutputStream(), ApiError.of(401, "Unauthorized",
+                                    "No autenticado: envíe un token JWT válido", req.getRequestURI()));
+                        })
+                        // Un token válido sin rol suficiente → 403 directo con el MISMO cuerpo ApiError.
+                        // SIN este handler, el 403 por defecto usa sendError: el contenedor re-despacha a
+                        // /error, la cadena de seguridad ve la petición sin autenticación y la respuesta
+                        // final llega al cliente como 401 "No autenticado" (bug visto en el E2E).
+                        .accessDeniedHandler((req, res, ex) -> {
+                            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            mapper.writeValue(res.getOutputStream(), ApiError.of(403, "Forbidden",
+                                    "No tiene permisos para este recurso", req.getRequestURI()));
+                        }))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService),
                         UsernamePasswordAuthenticationFilter.class);
         return http.build();
