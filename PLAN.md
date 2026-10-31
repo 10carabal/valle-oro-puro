@@ -142,12 +142,16 @@ filtros avanzados → script demo. Nunca lo intocable.
   - Verificación: registro + login funcionan y guardan el token ✅ (formularios con @Email,
     minLength 6, errores 401/409 con mensaje del ApiError; token en localStorage `basket_token` /
     `basket_usuario`; login con returnUrl)
-- [ ] 5.2 Panel admin: CRUD de partidos, edición de precios/cupos
-  - El shell `/admin` protegido con children stubs (`admin/partidos`, `admin/reportes`) ya existe
-    (lazy loading): solo sustituir los stubs
-  - Verificación: crear y editar un partido desde la UI, el cambio refleja en la lista pública
-- [ ] 5.3 Reporte de ventas por partido (Native Query) en el panel admin
-  - Verificación: el reporte muestra cantidad y total del seed
+- [x] 5.2 Panel admin: CRUD de partidos, edición de precios/cupos
+  - El shell `/admin` protegido con children stubs ya existe (lazy loading)
+  - Verificación: crear y editar un partido desde la UI, el cambio refleja en la lista pública ✅
+  - Extras: cancelación con confirm() en secuencia catalog→sales (orquestación en cliente
+    comentada, aviso de reintento si sales falla), gestión de localidades (crear/editar) con
+    409 de cupo<vendidos vía `mensajeApi`, indicador Agotado, estados carga/vacío/error
+- [x] 5.3 Reporte de ventas por partido (Native Query) en el panel admin
+  - Verificación: el reporte muestra cantidad y total del seed ✅ (selector de partido,
+    fila TOTALES con `computed`, vacío amigable)
+  - Resultado agente F: `ng test` **42/42 en verde** (9 archivos, estable en 2 corridas) ✅ 2026-10-28
 
 ## Día 4 — Entrega
 - [ ] 6.1 E2E manual completo: registro → listar → filtrar → comprar → código → admin → reporte → cancelar

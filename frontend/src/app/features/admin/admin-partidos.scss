@@ -1,0 +1,65 @@
+.grid-campos {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* El estado solo aplica al editar: el alta siempre nace PROGRAMADO en el backend. */
+.campo--oculto {
+  display: none;
+}
+
+.tarjeta__cabecera h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.tarjeta__datos {
+  color: var(--color-texto-suave);
+  margin: 0.25rem 0 0.75rem;
+}
+
+.gestion {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--color-borde);
+}
+
+.gestion__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+
+  h4 {
+    margin: 0;
+  }
+}
+
+.form-localidad {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+
+  h5 {
+    margin: 0;
+  }
+}
+
+.nota {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+}
+
+.alerta.alerta--aviso {
+  background: #fff4e0;
+  color: #8a5300;
+}

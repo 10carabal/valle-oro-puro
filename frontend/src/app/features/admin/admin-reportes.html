@@ -1,0 +1,59 @@
+<section class="pantalla admin-pantalla">
+  <h2>Reporte de ventas</h2>
+
+  <div class="reporte__cabecera">
+    <label class="filtros__campo">
+      <span>Partido (opcional)</span>
+      <select #filtroPartido [value]="partidoId()" (change)="cambiarPartido(filtroPartido.value)">
+        <option value="">Todos los partidos</option>
+        @for (p of partidos(); track p.id) {
+          <option [value]="p.id">{{ p.rival }} · {{ p.fecha }}</option>
+        }
+      </select>
+    </label>
+    <p class="reporte__nota">Solo entran reservas confirmadas (CONFIRMED).</p>
+  </div>
+
+  @if (errorPartidos(); as mensajePartidos) {
+    <p class="alerta" role="alert">{{ mensajePartidos }}</p>
+  } @else if (cargandoPartidos()) {
+    <p class="estado-vacio" role="status">Cargando partidos…</p>
+  }
+
+  @if (error(); as mensaje) {
+    <p class="alerta" role="alert">{{ mensaje }}</p>
+  } @else if (cargando()) {
+    <p class="estado-vacio" role="status">Cargando reporte…</p>
+  } @else if (filas().length === 0) {
+    <p class="estado-vacio">Aún no hay ventas confirmadas</p>
+  } @else {
+    <table class="tabla-localidades tabla-reporte">
+      <thead>
+        <tr>
+          <th>Rival</th>
+          <th>Localidad</th>
+          <th>Cantidad vendida</th>
+          <th>Total recaudado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (fila of filas(); track trackPorFila($index, fila)) {
+          <tr>
+            <td>{{ fila.rival }}</td>
+            <td>{{ fila.localidadId }}</td>
+            <td>{{ fila.cantidadVendida }}</td>
+            <td>{{ fila.totalRecaudado | cop }}</td>
+          </tr>
+        }
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>TOTALES</th>
+          <th></th>
+          <th>{{ totalCantidad() }}</th>
+          <th>{{ totalRecaudado() | cop }}</th>
+        </tr>
+      </tfoot>
+    </table>
+  }
+</section>
