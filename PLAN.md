@@ -27,7 +27,8 @@ filtros avanzados → script demo. Nunca lo intocable.
 - PostgreSQL 16 con 3 esquemas (auth, catalog, sales), sin joins entre esquemas
 - Stack: Java 21, Spring Boot 3.5.x, Maven wrapper, Flyway, Spring Security + JWT,
   Spring Data JPA, Springdoc, Testcontainers; Angular standalone + signals
-- Puertos: auth 8081 · catalog 8082 · sales 8083 · PG 5432 · Angular 4200
+- Puertos: auth 8081 · catalog 8082 · sales 8083 · PG **5433 en el host** (5432 la ocupaba
+  `veni-postgres` de otro proyecto; interno Docker sigue en 5432) · Angular 4200
 
 ---
 
@@ -48,9 +49,11 @@ filtros avanzados → script demo. Nunca lo intocable.
 - [x] 0.4 `infra/docker-compose.yml`: PostgreSQL 16 (volúmen + healthcheck) + las 3 apps con `infra/Dockerfile`
     parametrizado (`--build-arg MODULE`) y `--profile full` (el MVP base es compose solo con PG)
   - Verificación: `docker compose up -d` levanta PG y los servicios crean sus esquemas con Flyway
-- [ ] 0.5 Flyway por servicio (`spring.flyway.schemas` = auth/catalog/sales) + seed de datos de ejemplo
+- [x] 0.5 Flyway por servicio (`spring.flyway.schemas` = auth/catalog/sales) + seed de datos de ejemplo
     en las migraciones de cada servicio (usuarios USER/ADMIN, 3 partidos, localidades con cupo)
   - Verificación: al arrancar cada servicio sus migraciones aplican sin error y el seed deja datos
+  - Hecho dentro de los bloques 1-3 (V2 de cada servicio; el seed de sales es vacío a propósito:
+    las reservas son transaccionales). Fechas del seed relativas a `CURRENT_DATE`
 
 ### Bloque 1 — auth-service 🅿️ (agente A) — ✅ COMPLETO (2026-10-28)
 - [x] 1.1 Módulo Maven `auth-service`: entidad `usuarios`, Flyway (`id, email UNIQUE, password_hash, nombre, rol, creado_en`)
@@ -130,12 +133,12 @@ filtros avanzados → script demo. Nunca lo intocable.
   - Verificación: `/admin` sin sesión redirige a `/login`; con USER redirige; con ADMIN entra ✅ (5 tests de guards)
 - [x] 4.3 Lista de partidos con filtros por fecha y estado + detalle con localidades, precios y disponibilidad
   - Verificación: filtrar por fecha y por estado muestra resultados del seed ✅ (estado vacío, "Agotado", pipe COP)
-- [ ] 4.4 Flujo de compra: seleccionar localidad → cantidad → reserva → pago simulado → pantalla con
-    código de entrada; 409 mostrado amigable cuando no hay cupo
-  - Bloqueada hasta que sales-service (bloque 3) esté commiteado; el botón en el detalle ya está
-    preparado con comentario `tarea 4.4`
+- [~] 4.4 Flujo de compra: seleccionar localidad → cantidad → reserva → pago simulado → pantalla con
+    código de entrada; 409 mostrado amigable cuando no hay cupo — **EN VUELO: agente E**
+    (sesión `ses_e7afb88caffe83pYZmwWThVxkk`, lanzado 2026-10-28; pendiente verificar `ng test`
+    y commitear sus cambios en `frontend/src/app/features/partidos/**`, `mis-entradas/`,
+    `core/services/sales.service.ts`, rutas y navbar)
   - Verificación: comprar la última entrada en 2 pestañas → una confirma y la otra ve el 409
-  - Resultado parcial: `ng build` SUCCESS · `ng test` 21/21 en verde ✅ 2026-10-28 (agente C)
 
 ### Bloque 5 — Angular admin 🅿️ (agente B)
 - [x] 5.1 Login/registro (formularios reactivos + validaciones)
@@ -159,9 +162,11 @@ filtros avanzados → script demo. Nunca lo intocable.
 - [ ] 6.2 Script demo de concurrencia (`infra/demo-concurrencia.mjs`): N peticiones HTTP paralelas
     sobre la última entrada; imprime éxitos/conflictos
   - Verificación: contra el stack corriendo imprime "1 éxito / N-1 conflictos"
-- [ ] 6.3 README: arquitectura (diagrama Mermaid), requisitos, variables de entorno, cómo ejecutar,
+- [~] 6.3 README: arquitectura (diagrama Mermaid), requisitos, variables de entorno, cómo ejecutar,
     qué está implementado, **JPQL vs Native Query (justificación)**, **estrategia de concurrencia +
-    porqué frente a optimista/pesimista**, cómo correr las pruebas
+    porqué frente a optimista/pesimista**, cómo correr las pruebas — **EN VUELO: agente G**
+    (sesión `ses_e7afb88c5ffezRa3hy9oCPV3Zc`, lanzado 2026-10-28; escribe SOLO `README.md` en la
+    raíz; pendiente verificar precisión y commitear)
   - Verificación: alguien puede clonar y levantar siguiendo solo el README
 - [ ] 6.4 Springdoc (Swagger) en los 3 servicios, enlazado en el README *(recortable)*
   - Verificación: `/swagger-ui.html` responde en los 3
@@ -174,4 +179,16 @@ filtros avanzados → script demo. Nunca lo intocable.
 
 ## Registro de resultados
 
-- *(ir anotando aquí resultados de verificaciones, fechas y hallazgos)*
+### Cierre del día 1 — 2026-10-28
+
+- **Backend completo y verificado en conjunto**: `.\mvnw.cmd -B test` → BUILD SUCCESS, **28/28
+  tests** (auth 9 + catalog 11 + sales 8, todos con Testcontainers sobre PostgreSQL 16 real).
+- **Frontend (pre-4.4)**: `npx ng build` SUCCESS · `npx ng test --watch=false` → **42/42** en verde.
+- Commits en `main`: afad912, 3950bcc, 63220d5, 2e02ce6, c44bcc9, ec4ba51, 68b8cc9, 4604b25, 2143e59.
+- Postgres del compose corriendo en **5433** (contenedor `boleteria-postgres`, healthy). NO tocar
+  `veni-postgres`/`veni-mailpit` (5432/8025, proyecto ajeno en marcha).
+- `gh` autenticado como **10carabal** (listo para 6.6).
+- **En vuelo al cerrar**: agente E (4.4 compra) y agente G (6.3 README) — ver cabeceras de 4.4/6.3.
+- **Pendientes al retomar**: recoger E y G (verificar + commit), 6.1 E2E manual, 6.2 script
+  `infra/demo-concurrencia.mjs`, 6.4 Springdoc, 6.5 gates finales (`mvnw -B test` + `ng build` +
+  `ng test`), 6.6 repo GitHub. Colchón: quedan 3 días y solo queda integración + entrega.
