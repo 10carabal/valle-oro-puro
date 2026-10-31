@@ -133,11 +133,11 @@ filtros avanzados → script demo. Nunca lo intocable.
   - Verificación: `/admin` sin sesión redirige a `/login`; con USER redirige; con ADMIN entra ✅ (5 tests de guards)
 - [x] 4.3 Lista de partidos con filtros por fecha y estado + detalle con localidades, precios y disponibilidad
   - Verificación: filtrar por fecha y por estado muestra resultados del seed ✅ (estado vacío, "Agotado", pipe COP)
-- [~] 4.4 Flujo de compra: seleccionar localidad → cantidad → reserva → pago simulado → pantalla con
-    código de entrada; 409 mostrado amigable cuando no hay cupo — **EN VUELO: agente E**
-    (sesión `ses_e7afb88caffe83pYZmwWThVxkk`, lanzado 2026-10-28; pendiente verificar `ng test`
-    y commitear sus cambios en `frontend/src/app/features/partidos/**`, `mis-entradas/`,
-    `core/services/sales.service.ts`, rutas y navbar)
+- [ ] 4.4 Flujo de compra: seleccionar localidad → cantidad → reserva → pago simulado → pantalla con
+    código de entrada; 409 mostrado amigable cuando no hay cupo
+  - **Agente E cancelado al cerrar el día SIN producir nada** (árbol verificado limpio: no existe
+    `mis-entradas/` ni `sales.service.ts`); relanzar mañana con el mismo alcance (el prompt está en
+    el historial de la sesión; contrato de sales completo en memory.md §3)
   - Verificación: comprar la última entrada en 2 pestañas → una confirma y la otra ve el 409
 
 ### Bloque 5 — Angular admin 🅿️ (agente B)
@@ -162,11 +162,11 @@ filtros avanzados → script demo. Nunca lo intocable.
 - [ ] 6.2 Script demo de concurrencia (`infra/demo-concurrencia.mjs`): N peticiones HTTP paralelas
     sobre la última entrada; imprime éxitos/conflictos
   - Verificación: contra el stack corriendo imprime "1 éxito / N-1 conflictos"
-- [~] 6.3 README: arquitectura (diagrama Mermaid), requisitos, variables de entorno, cómo ejecutar,
+- [ ] 6.3 README: arquitectura (diagrama Mermaid), requisitos, variables de entorno, cómo ejecutar,
     qué está implementado, **JPQL vs Native Query (justificación)**, **estrategia de concurrencia +
-    porqué frente a optimista/pesimista**, cómo correr las pruebas — **EN VUELO: agente G**
-    (sesión `ses_e7afb88c5ffezRa3hy9oCPV3Zc`, lanzado 2026-10-28; escribe SOLO `README.md` en la
-    raíz; pendiente verificar precisión y commitear)
+    porqué frente a optimista/pesimista**, cómo correr las pruebas
+  - **Agente G cancelado al cerrar el día SIN producir nada** (verificado: no existe `README.md`
+    en la raíz); relanzar mañana con el mismo alcance (el prompt está en el historial de la sesión)
   - Verificación: alguien puede clonar y levantar siguiendo solo el README
 - [ ] 6.4 Springdoc (Swagger) en los 3 servicios, enlazado en el README *(recortable)*
   - Verificación: `/swagger-ui.html` responde en los 3
@@ -188,7 +188,8 @@ filtros avanzados → script demo. Nunca lo intocable.
 - Postgres del compose corriendo en **5433** (contenedor `boleteria-postgres`, healthy). NO tocar
   `veni-postgres`/`veni-mailpit` (5432/8025, proyecto ajeno en marcha).
 - `gh` autenticado como **10carabal** (listo para 6.6).
-- **En vuelo al cerrar**: agente E (4.4 compra) y agente G (6.3 README) — ver cabeceras de 4.4/6.3.
-- **Pendientes al retomar**: recoger E y G (verificar + commit), 6.1 E2E manual, 6.2 script
+- **Agentes E (4.4) y G (6.3) cancelados al cerrar el día sin producir nada** (árbol verificado
+  limpio: sin `README.md`, sin `mis-entradas/`, sin `sales.service.ts`); relanzar mañana.
+- **Pendientes al retomar**: relanzar E (4.4 compra) y G (6.3 README), 6.1 E2E manual, 6.2 script
   `infra/demo-concurrencia.mjs`, 6.4 Springdoc, 6.5 gates finales (`mvnw -B test` + `ng build` +
   `ng test`), 6.6 repo GitHub. Colchón: quedan 3 días y solo queda integración + entrega.
