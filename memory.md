@@ -3,7 +3,7 @@
 **Cómo usar este archivo:** todo agente que trabaje en este repo DEBE leerlo antes de empezar.
 Aquí vive el contexto compartido del equipo (entorno, decisiones ya cerradas, trampas conocidas).
 Al terminar cada tarea, añade aquí cualquier lección nueva en "Lecciones aprendidas" (append,
-nada de reescribir lo que ya está). Última actualización: 2026-10-28.
+nada de reescribir lo que ya está). Última actualización: 2026-10-31.
 
 ---
 
@@ -164,3 +164,36 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   /api/sales/reservas/cancelar-por-partido/{id}` con aviso de reintento si sales falla, y el 409
   de `cupo < vendidos` se muestra SIEMPRE con `mensajeApi()` (el backend es el que valida; no
   precuentear en cliente). `estado` se envía solo en PUT, nunca en POST de partido.
+- 2026-10-31 (día 4): **403 llegaba como 401 en sales**. Causa raíz: `SecurityConfig` sin
+  `accessDeniedHandler`; la decisión por defecto dispara `response.sendError(403)` que re-despacha a
+  `/error` SIN contexto de autenticación → Spring Security acaba respondiendo 401. Fix: registrar un
+  `accessDeniedHandler` que escriba `ApiError` 403 directo (patrón que ya usaba catalog). Lección:
+  siempre añadir `authenticationEntryPoint` Y `accessDeniedHandler` en cada servicio.
+- 2026-10-31 (día 4): **`@ExceptionHandler` silencia los 500**. Las excepciones capturadas por el
+  advice NO las loguea Spring; un `catch` que solo devuelve el `ApiError` deja el error invisible en
+  consola. Fix: `log.error(..., ex)` con el stack en el handler genérico. Sin eso, depurar un 500
+  en producción es ciego.
+- 2026-10-31 (día 4): mapear **`HttpMessageNotReadableException` → 400** (JSON malformado / fecha no
+  ISO) y **`NoResourceFoundException` → 404** (ruta inexistente); sin esto ambos eran 500. El 404
+  solo aplica con token válido (sin token la seguridad responde 401 antes de llegar al handler).
+- 2026-10-31 (día 4): con `curl.exe` + PowerShell 5.1, el JSON con comillas/acentos por argumento
+  se corrompe; siempre escribir el body a un archivo (`Set-Content -NoNewline -Encoding ASCII`) y
+  pasarlo con `-d "@$file"`. Helper `req(method,url,body,auth)` redefinible por shell; tokens en
+  `%TEMP%\tokU.txt`/`%TEMP%\tokA.txt` (viven 8h).
+- 2026-10-31 (día 4): `mvnw package` revienta si los jars están en ejecución (archivo bloqueado en
+  Windows); matar los procesos java de los 3 jars antes de empaquetar (patrón
+  `CommandLine -match '<jar>'` sobre `Get-CimInstance Win32_Process`).
+- 2026-10-31 (día 4): el shell de OpenCode en Windows convierte **stderr redirigido en error
+  terminante** si `$ErrorActionPreference='Stop'`; para pipelines con `2>&1` largos (mvn/ng) usar
+  `$ErrorActionPreference='Continue'` o evitar la redirección de stderr.
+- 2026-10-31 (día 4): **PowerShell desanida arrays de 1 elemento** al pasarlos a un parámetro
+  `[array]` (`@(@('sha','msg'))` → `@('sha','msg')`); un `foreach` posterior itera strings y
+  `$c[0]` da el primer CARÁCTER (sha→`'6'` → `fatal: invalid reference`). Fix robusto: pasar los
+  elementos como **hashtables** `@{sha='..';msg='..'}`, que nunca se desanidan (los arrays de ≥2
+  elementos anidados no se desanidan, por eso el bug solo salta con 1 commit).
+- 2026-10-31 (día 4): **técnica de reconstrucción de historia para PRs temáticos** sin reescribir:
+  (1) guardar el estado en una rama `wip/*`; (2) `git checkout --orphan` + commit vacío como nuevo
+  `main`; (3) por cada rama, `git checkout <sha-original> -- .` + `git add -A` + commit con mensaje
+  en inglés; (4) para cambios aún sin commit, `git checkout wip/* -- <ruta>`. Seguro SOLO si la
+  historia original no tiene borrados ni renombres (verificar con `git log --diff-filter=D/--filter=R`
+  vacío); si los tiene, el `checkout -- .` deja archivos huérfanos.
