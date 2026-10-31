@@ -33,6 +33,19 @@
 
   <dependencyManagement>
     <dependencies>
+      <!--
+        IMPORTANTE: jackson-bom va ANTES de jjwt-bom. jjwt-bom hereda de jjwt-root la
+        gestión de jackson-databind:2.12.7.1, que desalinea Jackson con Spring Boot 3.5
+        y provoca NoClassDefFoundError: ToEmptyObjectSerializer al arrancar. El primer
+        BOM importado gana; al reimportar jackson-bom de Boot aquí, todo queda alineado.
+      -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>io.jsonwebtoken</groupId>
         <artifactId>jjwt-bom</artifactId>

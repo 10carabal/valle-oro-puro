@@ -1,0 +1,72 @@
+package com.valle.boleteria.common.error;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.stream.Collectors;
+
+/**
+ * Manejo centralizado de errores: cualquier controlador (de cualquier servicio)
+ * devuelve siempre el mismo formato {@link ApiError}.
+ */
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiError> noEncontrado(NotFoundException ex, HttpServletRequest req) {
+        return responder(HttpStatus.NOT_FOUND, ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ApiError> conflicto(ConflictException ex, HttpServletRequest req) {
+        return responder(HttpStatus.CONFLICT, ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> validacion(MethodArgumentNotValidException ex, HttpServletRequest req) {
+        String campos = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+        return responder(HttpStatus.BAD_REQUEST, campos, req);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> parametroInvalido(MethodArgumentTypeMismatchException ex, HttpServletRequest req) {
+        return responder(HttpStatus.BAD_REQUEST,
+                "Parámetro inválido: " + ex.getName(), req);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ApiError> credenciales(BadCredentialsException ex, HttpServletRequest req) {
+        return responder(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", req);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> denegado(AccessDeniedException ex, HttpServletRequest req) {
+        return responder(HttpStatus.FORBIDDEN, "No tiene permisos para este recurso", req);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> metodoNoSoportado(HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
+        return responder(HttpStatus.METHOD_NOT_ALLOWED, "Método no soportado: " + ex.getMethod(), req);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> inesperado(Exception ex, HttpServletRequest req) {
+        // Se deja el detalle en el log del servicio; al cliente solo el mensaje genérico.
+        return responder(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor", req);
+    }
+
+    private ResponseEntity<ApiError> responder(HttpStatus status, String mensaje, HttpServletRequest req) {
+        return ResponseEntity.status(status)
+                .body(ApiError.of(status.value(), status.getReasonPhrase(), mensaje, req.getRequestURI()));
+    }
+}

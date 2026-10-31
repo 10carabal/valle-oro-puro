@@ -84,6 +84,9 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 - Spring Boot **3.5.16** (parent) · Java **21** · jjwt BOM **0.12.7** (¡0.12.6 NO existe en Central!)
 - springdoc **2.8.13** · Flyway con `flyway-database-postgresql` · Testcontainers BOM 1.21.x (Boot)
 - PostgreSQL **16-alpine** · Angular: último estable (crear con `ng new`)
+- **Trampa Jackson (resuelta):** el pom padre importa `jackson-bom` ANTES que `jjwt-bom` porque
+  jjwt-bom arrastra `jackson-databind:2.12.7.1` de jjwt-root y rompe el arranque con
+  `NoClassDefFoundError: ToEmptyObjectSerializer`. No quitar ni reordenar ese import.
 
 ## 6. Reglas del equipo (agentes)
 
@@ -105,3 +108,13 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
   SUCCESS no prueba que las dependencias resuelvan — la prueba real es compilar con código fuente.
 - 2026-10-28: `Select-String` con rutas posicionales revienta por parseo de regex; usar siempre
   `-Path <archivo> -Pattern <patrón>`.
+- 2026-10-28 (agente A): `jjwt-bom` en el `dependencyManagement` del padre hereda de `jjwt-root`
+  `jackson-databind:2.12.7.1`; al arrancar cualquier servicio con `starter-web` aparece
+  `NoClassDefFoundError: com/fasterxml/jackson/databind/ser/std/ToEmptyObjectSerializer`.
+  Fix centralizado en el pom padre: importar `com.fasterxml.jackson:jackson-bom:${jackson-bom.version}`
+  ANTES que `jjwt-bom` (el primer BOM importado gana). Los servicios no necesitan nada propio.
+- 2026-10-28 (agente A): emails normalizados a minúsculas antes de persistir para que el
+  `UNIQUE(email)` no falle con variaciones de mayúsculas. Usuarios registrados por API nacen
+  siempre `USER` (el ADMIN solo viene del seed).
+- 2026-10-28 (agente A): generar hashes BCrypt de ejemplo con un test temporal que los imprima,
+  pegarlos en `V2__seed` y BORRAR el test (no dejar utilidades de un solo uso en el repo).
