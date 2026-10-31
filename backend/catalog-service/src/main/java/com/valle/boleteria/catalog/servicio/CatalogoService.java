@@ -129,7 +129,15 @@ public class CatalogoService {
      */
     @Transactional
     public CupoResponse reservar(Long localidadId, int cantidad) {
-        Localidad localidad = localidad(localidadId); // 404 si no existe
+        Localidad localidad = localidadRepository.buscarConPartido(localidadId)
+                .orElseThrow(() -> new NotFoundException("Localidad no encontrada: " + localidadId));
+        // Un partido cancelado (o ya jugado) NO admite compra: el inventario queda
+        // congelado aunque a la localidad le quede cupo. Sin esta guarda, la UI
+        // deshabilitaba el botón pero la API seguía vendiendo.
+        if (localidad.getPartido().getEstado() != EstadoPartido.PROGRAMADO) {
+            throw new ConflictException("El partido no admite compra (estado "
+                    + localidad.getPartido().getEstado() + ")");
+        }
         int filas = localidadRepository.sumarVendidos(localidadId, cantidad);
         if (filas == 0) {
             throw new ConflictException("No hay cupo disponible para esta localidad");

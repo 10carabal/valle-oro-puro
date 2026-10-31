@@ -20,7 +20,11 @@ import java.util.Date;
 public class JwtService {
 
     public static final String ATRIBUTO_ROL = "rol";
+    /** Rol sintético de las llamadas internas entre servicios (no es un rol de usuario). */
+    public static final String ROL_SERVICIO = "SERVICE";
     private static final long VALIDEZ_HORAS = 8;
+    /** Los tokens de servicio viven muy poco: solo cubren la llamada en curso. */
+    private static final long VALIDEZ_SERVICIO_SEGUNDOS = 60;
 
     private final SecretKey clave;
 
@@ -39,6 +43,25 @@ public class JwtService {
                 .claim(ATRIBUTO_ROL, rol)
                 .issuedAt(ahora)
                 .expiration(new Date(ahora.getTime() + VALIDEZ_HORAS * 3_600_000L))
+                .signWith(clave)
+                .compact();
+    }
+
+    /**
+     * Token corto de SERVICIO (sub = nombre del servicio, rol = SERVICE).
+     *
+     * <p>Lo firma el servicio que orquesta una llamada interna (p. ej. sales →
+     * catalog) con el mismo secreto compartido. Autoriza SOLO los endpoints
+     * internos: un usuario final nunca recibe este rol, así que no puede
+     * invocar el inventario directamente.</p>
+     */
+    public String generarTokenServicio(String servicio) {
+        Date ahora = new Date();
+        return Jwts.builder()
+                .subject(servicio)
+                .claim(ATRIBUTO_ROL, ROL_SERVICIO)
+                .issuedAt(ahora)
+                .expiration(new Date(ahora.getTime() + VALIDEZ_SERVICIO_SEGUNDOS * 1_000L))
                 .signWith(clave)
                 .compact();
     }

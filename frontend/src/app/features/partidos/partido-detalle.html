@@ -55,7 +55,11 @@
               <td>
                 <!-- tarea 4.4: flujo de compra (sales-service): seleccionar localidad →
                      cantidad → POST /api/sales/reservas → pagar → código de entrada. -->
-                @if (l.disponibles === 0) {
+                @if (p.estado === 'CANCELADO') {
+                  <button class="boton boton--primario" type="button" disabled>Cancelado</button>
+                } @else if (p.estado === 'JUGADO') {
+                  <button class="boton boton--primario" type="button" disabled>Finalizado</button>
+                } @else if (l.disponibles === 0) {
                   <button class="boton boton--primario" type="button" disabled>Agotado</button>
                 } @else {
                   <button class="boton boton--primario" type="button" (click)="comprar(l)">Comprar</button>

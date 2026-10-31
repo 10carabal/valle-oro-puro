@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -25,9 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * API de ventas. Todo requiere autenticación (el subject del JWT es el dueño);
- * la cabecera Authorization del usuario se reenvía a catalog en las
- * compensaciones (propagación de JWT, decisión cerrada).
+ * API de ventas. Todo requiere autenticación (el subject del JWT es el dueño).
+ * Las llamadas internas a catalog viajan con un token de SERVICIO firmado por
+ * sales (ver {@code CatalogClient}); el JWT del usuario NO se propaga.
  */
 @RestController
 @RequestMapping("/api/sales/reservas")
@@ -43,9 +42,8 @@ public class ReservaController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ReservaResponse reservar(@Valid @RequestBody ReservaRequest request,
-                                    @AuthenticationPrincipal String email,
-                                    @RequestHeader("Authorization") String authorization) {
-        return servicio.reservar(request, email, authorization);
+                                    @AuthenticationPrincipal String email) {
+        return servicio.reservar(request, email);
     }
 
     /** Pago simulado del dueño: CONFIRMED + entrada con código único. */
@@ -58,16 +56,14 @@ public class ReservaController {
     @PostMapping("/{id}/cancelar")
     public ReservaResponse cancelar(@PathVariable Long id,
                                     @AuthenticationPrincipal String email,
-                                    Authentication authentication,
-                                    @RequestHeader("Authorization") String authorization) {
-        return servicio.cancelar(id, email, esAdmin(authentication), authorization);
+                                    Authentication authentication) {
+        return servicio.cancelar(id, email, esAdmin(authentication));
     }
 
     /** Cancelación masiva de un partido (lo usa el panel admin). */
     @PostMapping("/cancelar-por-partido/{partidoId}")
-    public CanceladasResponse cancelarPorPartido(@PathVariable Long partidoId,
-                                                 @RequestHeader("Authorization") String authorization) {
-        return servicio.cancelarPorPartido(partidoId, authorization);
+    public CanceladasResponse cancelarPorPartido(@PathVariable Long partidoId) {
+        return servicio.cancelarPorPartido(partidoId);
     }
 
     /** Mis reservas (JPQL parametrizada) con la entrada emitida, si tiene. */

@@ -10,6 +10,6 @@ import java.time.LocalTime;
 public record PartidoRequest(
         @NotBlank(message = "rival es obligatorio") String rival,
         @NotNull(message = "fecha es obligatoria") LocalDate fecha,
-        LocalTime hora,
-        String escenario) {
+        @NotNull(message = "hora es obligatoria") LocalTime hora,
+        @NotBlank(message = "escenario es obligatorio") String escenario) {
 }

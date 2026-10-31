@@ -64,11 +64,11 @@ public class VentaService {
      * {@code cancelar-por-partido} (caso extremo documentado en el README).
      */
     @Transactional
-    public ReservaResponse reservar(ReservaRequest request, String usuarioEmail, String authorization) {
-        LocalidadInfo info = catalog.localidad(request.localidadId(), authorization); // 404 si no existe
+    public ReservaResponse reservar(ReservaRequest request, String usuarioEmail) {
+        LocalidadInfo info = catalog.localidad(request.localidadId()); // 404 si no existe
 
         try {
-            catalog.reservarCupo(request.localidadId(), request.cantidad(), authorization);
+            catalog.reservarCupo(request.localidadId(), request.cantidad());
         } catch (ConflictException sinCupo) {
             // Se persiste el intento fallido en otra transacción (REQUIRES_NEW):
             // el 409 relanzado hará rollback de ESTA y la fila se perdería.
@@ -105,7 +105,7 @@ public class VentaService {
 
     /** Dueño o ADMIN. PENDING y CONFIRMED consumieron cupo: ambos se compensan. */
     @Transactional
-    public ReservaResponse cancelar(Long reservaId, String usuarioEmail, boolean esAdmin, String authorization) {
+    public ReservaResponse cancelar(Long reservaId, String usuarioEmail, boolean esAdmin) {
         Reserva reserva = reserva(reservaId);
         if (!esAdmin && !reserva.getUsuarioEmail().equals(usuarioEmail)) {
             throw new AccessDeniedException("Solo el dueño de la reserva o un administrador puede cancelarla");
@@ -117,7 +117,7 @@ public class VentaService {
             throw new ConflictException("La reserva fue rechazada (sin cupo) y no puede cancelarse");
         }
         // Compensación de la saga: el cupo tomado en catalog se devuelve aquí.
-        catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad(), authorization);
+        catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad());
         reserva.cancelar();
         return ReservaResponse.de(reserva);
     }
@@ -127,11 +127,11 @@ public class VentaService {
      * reservas PENDING/CONFIRMED del partido y libera el cupo de cada una.
      */
     @Transactional
-    public CanceladasResponse cancelarPorPartido(Long partidoId, String authorization) {
+    public CanceladasResponse cancelarPorPartido(Long partidoId) {
         List<Reserva> vivas = reservaRepository.findByPartidoIdAndEstadoIn(
                 partidoId, List.of(EstadoReserva.PENDING, EstadoReserva.CONFIRMED));
         for (Reserva reserva : vivas) {
-            catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad(), authorization);
+            catalog.liberarCupo(reserva.getLocalidadId(), reserva.getCantidad());
             reserva.cancelar();
         }
         return new CanceladasResponse(vivas.size());

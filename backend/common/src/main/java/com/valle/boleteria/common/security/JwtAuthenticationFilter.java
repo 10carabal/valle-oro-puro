@@ -42,6 +42,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             Claims claims = jwtService.validar(token);
             String rol = claims.get(JwtService.ATRIBUTO_ROL, String.class);
+            if (rol == null || rol.isBlank()) {
+                // Un token sin rol no debe quedar autenticado como ROLE_null:
+                // lo tratamos como inválido (401) para no abrir rutas protegidas.
+                throw new IllegalArgumentException("Token sin claim de rol");
+            }
             var autenticacion = new UsernamePasswordAuthenticationToken(
                     claims.getSubject(), null,
                     List.of(new SimpleGrantedAuthority("ROLE_" + rol)));

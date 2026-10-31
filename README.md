@@ -46,7 +46,7 @@ flowchart LR
     PROXY -->|"localhost:8081"| AUTH
     PROXY -->|"localhost:8082"| CAT
     PROXY -->|"localhost:8083"| SALES
-    SALES -->|"RestClient con el Authorization del usuario"| CAT
+    SALES -->|"RestClient con token de servicio (rol SERVICE)"| CAT
     AUTH --> PG
     CAT --> PG
     SALES --> PG
@@ -67,9 +67,10 @@ flowchart LR
   `/api/auth` → :8081, `/api/catalog` → :8082 y `/api/sales` → :8083 **sin pathRewrite**
   (los servicios ya exponen el prefijo completo).
 - **sales → catalog:** REST **síncrono** con el `RestClient` de Spring Boot (sin Feign ni
-  Spring Cloud). sales **reenvía la cabecera `Authorization` del usuario**, de modo que
-  catalog autoriza la operación con la identidad real del comprador; no existen tokens de
-  servicio.
+  Spring Cloud). sales firma un **token de servicio** corto (`sub=sales-service`,
+  `rol=SERVICE`, 60 s) con el mismo secreto compartido y lo envía en la cabecera
+  `Authorization`; catalog exige ese rol SOLO en `reservar/liberar`. El JWT del usuario no
+  viaja entre servicios: cada uno valida su propia frontera.
 - **auth → el resto:** auth emite el JWT (`sub` = email, claim `rol`, 8 h de validez) y los
   **3 servicios lo validan con el mismo secreto** (`JWT_SECRET`), por lo que cualquiera
   verifica el token sin llamar a auth.
@@ -211,7 +212,7 @@ Requisito: Docker corriendo (Testcontainers levanta **PostgreSQL 16 real** por m
 | Módulo | Tests | Qué cubre |
 |---|---|---|
 | `auth-service` | 9 (6 integración + 3 unitarios) | Registro → login → `/yo`; email duplicado → 409 con `ApiError`; login malo → 401; `/yo` sin token → 401; login del admin seed; body inválido → 400. Unitarios del `JwtService`: claims, firma con otro secreto rechazada, secreto < 32 bytes falla. |
-| `catalog-service` | 11 (8 controller + 2 repositorio + 1 concurrencia) | Listado público con filtro de fecha; detalle 404; localidad pública; escrituras 401/403/201 según rol; flujo reservar/liberar y 409 sin cupo; cupo no editable por debajo de lo vendido. Repositorio: JPQL de filtros (fecha, estado, ambas) y semilla de la última entrada. |
+| `catalog-service` | 14 (11 controller + 2 repositorio + 1 concurrencia) | Listado público con filtro de fecha; detalle 404; localidad pública; escrituras 401/403/201 según rol; **reservar/liberar solo con rol SERVICE** (USER y ADMIN → 403; token sin rol → 401); flujo reservar/liberar y 409 sin cupo; **partido CANCELADO no admite reservar (409)**; partido sin hora/escenario → 400; cupo no editable por debajo de lo vendido. Repositorio: JPQL de filtros (fecha, estado, ambas) y semilla de la última entrada. |
 | `sales-service` | 8 (7 flujo + 1 concurrencia) | Saga completa reserva→pagar→entrada; sin cupo → 409 y reserva REJECTED; cancelar libera cupo; permisos de pago/cancelación/reporte; cancelación masiva por partido; reporte nativo agrupa solo CONFIRMED; dos pagos no producen códigos repetidos. |
 
 Pruebas estrella del caso crítico:
@@ -274,10 +275,11 @@ La liberación (compensación) usa la misma técnica con piso en cero:
 ### Saga de compra en sales-service
 
 1. **Reservar** (`POST /api/sales/reservas`): sales lee el snapshot de catalog
-   (precio/partido/rival) y le pide el cupo (`POST .../reservar`, `RestClient` con el
-   `Authorization` del usuario). Si catalog responde 409, sales persiste la reserva
-   `REJECTED` con `REQUIRES_NEW` (trazabilidad) y propaga el 409; si todo va bien, guarda la
-   reserva `PENDING`.
+   (precio/partido/rival) y le pide el cupo (`POST .../reservar`, `RestClient` con un
+   **token de servicio** `rol=SERVICE`). Catalog rechaza con 409 si no hay cupo **o si el
+   partido no está PROGRAMADO** (cancelado/jugado no se vende). Si catalog responde 409,
+   sales persiste la reserva `REJECTED` con `REQUIRES_NEW` (trazabilidad) y propaga el
+   409; si todo va bien, guarda la reserva `PENDING`.
 2. **Pagar** (`POST .../pagar`, dueño): pago simulado; reserva y **entrada con código UUID
    se confirman en la MISMA transacción** (`PENDING → CONFIRMED`): o ambas quedan en BD o
    ninguna.
@@ -391,8 +393,9 @@ SELECT r.partido_id     AS "partidoId",
 - El **mismo secreto** (`JWT_SECRET`) lo comparten los 3 servicios: auth firma, catalog y
   sales validan sin llamar a auth.
 - **Roles USER/ADMIN validados EN CADA SERVICIO** (`SecurityConfig` con `hasRole`): escrituras
-  del catálogo y reporte/cancelación masiva → solo ADMIN; reservar/liberar y ventas →
-  autenticado.
+  del catálogo y reporte/cancelación masiva → solo ADMIN; ventas → autenticado; **inventario
+  (`reservar`/`liberar`) → solo rol `SERVICE`** (token corto firmado por sales; ni USER ni
+  ADMIN pueden moverlo directamente).
 - **Endpoints públicos:** `GET` de catálogo (listado/detalle/localidades), login y registro,
   y la documentación Swagger (`/v3/api-docs/**`, `/swagger-ui/**`, `/swagger-ui.html`).
 - **401/403 en formato `ApiError`** uniforme (del módulo `common`) vía `AuthenticationEntryPoint`
@@ -436,7 +439,7 @@ sequenceDiagram
     A->>S: POST /api/sales/reservas (Bearer del usuario)
     S->>C: GET /api/catalog/localidades/{id}
     C-->>S: LocalidadInfo (precio, partido, rival)
-    S->>C: POST /api/catalog/localidades/{id}/reservar (Bearer reenviado)
+    S->>C: POST /api/catalog/localidades/{id}/reservar (token de servicio rol SERVICE)
     alt Hay cupo (UPDATE atómico afecta filas)
         C-->>S: 200 CupoResponse
         S-->>A: 201 Reserva PENDING

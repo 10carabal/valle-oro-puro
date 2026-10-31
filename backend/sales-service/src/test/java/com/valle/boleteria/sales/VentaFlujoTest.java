@@ -108,15 +108,18 @@ class VentaFlujoTest {
 
         catalogo.expect(manyTimes(), requestTo(endsWith("/localidades/7")))
                 .andExpect(method(HttpMethod.GET))
-                .andRespond(req -> {
-                    // Propagación de JWT: catalog debe recibir el Bearer del USUARIO
-                    bearerVistoEnCatalog.set(req.getHeaders().getFirst(HttpHeaders.AUTHORIZATION));
-                    return withSuccess(localidadInfoJson(LOCALIDAD_ID, PARTIDO_ID, 20000.0, 10, 0), MediaType.APPLICATION_JSON)
-                            .createResponse(req);
-                });
+                .andRespond(req -> withSuccess(
+                                localidadInfoJson(LOCALIDAD_ID, PARTIDO_ID, 20000.0, 10, 0),
+                                MediaType.APPLICATION_JSON)
+                        .createResponse(req));
         catalogo.expect(manyTimes(), requestTo(endsWith("/reservar")))
                 .andExpect(method(HttpMethod.POST))
-                .andRespond(withSuccess(cupoJson(LOCALIDAD_ID, 10, 2, 8), MediaType.APPLICATION_JSON));
+                .andRespond(req -> {
+                    // Identidad de servicio: sales firma un token SERVICE para catalog
+                    bearerVistoEnCatalog.set(req.getHeaders().getFirst(HttpHeaders.AUTHORIZATION));
+                    return withSuccess(cupoJson(LOCALIDAD_ID, 10, 2, 8), MediaType.APPLICATION_JSON)
+                            .createResponse(req);
+                });
 
         // Reserva → 201 PENDING con el total correcto (20000 x 2)
         MvcResult creada = mockMvc.perform(post("/api/sales/reservas")
@@ -134,8 +137,15 @@ class VentaFlujoTest {
         long reservaId = leerId(creada, "reservaId");
 
         assertThat(bearerVistoEnCatalog.get())
-                .as("sales reenvía la cabecera Authorization del usuario a catalog")
-                .isEqualTo("Bearer " + token);
+                .as("sales firma un token de SERVICIO para catalog (no reenvía el del usuario)")
+                .startsWith("Bearer ");
+        var claimsCatalog = jwtService.validar(bearerVistoEnCatalog.get().substring(7));
+        assertThat(claimsCatalog.getSubject()).isEqualTo("sales-service");
+        assertThat(claimsCatalog.get(JwtService.ATRIBUTO_ROL, String.class))
+                .isEqualTo(JwtService.ROL_SERVICIO);
+        assertThat(bearerVistoEnCatalog.get())
+                .as("el JWT del usuario NO viaja a catalog")
+                .isNotEqualTo("Bearer " + token);
 
         // Pago simulado → CONFIRMED + entrada con código UUID no nulo
         MvcResult pagada = mockMvc.perform(post("/api/sales/reservas/" + reservaId + "/pagar")
