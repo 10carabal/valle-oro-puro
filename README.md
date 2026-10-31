@@ -406,6 +406,25 @@ SELECT r.partido_id     AS "partidoId",
   y `AccessDeniedHandler`, no páginas de error del contenedor.
 - **Contraseñas con BCrypt** (strength 10); los usuarios registrados por API nacen siempre
   `USER` (el ADMIN solo viene del seed).
+
+### Límites conocidos y decisiones (alcance de la prueba)
+
+- **Cancelación de partido orquestada en el cliente** (panel admin): Angular llama primero a
+  catalog (`PUT /partidos/{id}/cancelar`) y después a sales (`cancelar-por-partido`). No hay
+  saga distribuida ni transacción entre servicios: si la pestaña se cierra entre ambos pasos, el
+  partido queda cancelado en catalog y las reservas vivas hasta que el admin repita la acción
+  (el segundo paso es idempotente y el panel avisa del reintento). Se eligió así para no
+  introducir un coordinador (outbox/saga) fuera del alcance de la prueba.
+- **Garantía de concurrencia**: la prueba fuerte vive en `ConcurrenciaCupoTest` (catalog, Postgres
+  real) y en el script end-to-end (`infra/demo-concurrencia.mjs`); el test de sales usa un mock con
+  CAS para aislar la lógica de la saga y las carreras de estado.
+- **Ventana conocida**: si catalog toma el cupo y el `save` de la reserva falla (p. ej. BD caída),
+  el cupo queda tomado hasta la cancelación masiva del partido; está documentado en el código.
+- **`JWT_SECRET`**: el `application.yml` trae un valor de demo para arrancar sin configuración; en
+  producción es obligatorio definirlo por entorno. Swagger queda público a propósito (lo evalúa la
+  prueba).
+- **Sin rate limiting** en login/registro ni tope por usuario en `/reservas` (fuera de alcance);
+  la expiración de PENDING evita que un usuario retenga cupo indefinidamente.
 - CORS abierto solo porque es un demo; en producción se restringiría al origen del frontend.
 
 ---

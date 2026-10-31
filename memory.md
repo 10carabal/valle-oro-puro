@@ -255,3 +255,8 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 - 2026-10-31 (test): para probar el job sin esperas: `@SpringBootTest(properties =
   "sales.reservas.expiracion.intervalo-ms=3600000")` neutraliza el `@Scheduled`, `JdbcTemplate`
   envejece `creado_en` y se llama `expirarPendientes(cutoff)` directamente.
+- 2026-10-31 (docs/review): se documentaron los límites conocidos en README §"Límites conocidos y
+  decisiones": cancelación de partido orquestada en el cliente (sin saga distribuida, segundo paso
+  idempotente), mock CAS en el test de sales vs. garantía fuerte en catalog/demo e2e, ventana de
+  fuga de cupo si falla el save, `JWT_SECRET` demo y ausencia de rate limiting. Decisión: no
+  implementar outbox/saga ni rate limiter por alcance.
