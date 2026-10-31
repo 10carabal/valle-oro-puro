@@ -79,6 +79,9 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 - **Docker Desktop NO arranca con el sistema** (hay que abrirlo). Los tests de integración usan
   Testcontainers → verificar `docker info` antes; si el daemon tarda, esperar (~5 min la 1ª vez
   por la descarga de `postgres:16-alpine` y ryuk).
+- **Puertos Docker**: el 5432 lo ocupa `veni-postgres` (otro proyecto del usuario, EN MARCHA —
+  no tocar ni parar). Nuestro Postgres corre en **`boleteria-postgres` con host 5433** (interno
+  5432); los `application.yml` usan por defecto `jdbc:postgresql://localhost:5433/boleteria`.
 - **No hay Python** en esta máquina (el `python` del store es un alias molesto). Para PDFs:
   `npx -y pdf-parse text <archivo.pdf>` funciona.
 - **Fallos DNS transitorios** existen (una vez falló `repo1.maven.org`): reintentar, no asumir
@@ -153,3 +156,11 @@ Ver `PLAN.md` para tareas/estado y la sección "Lo intocable" para prioridades.
 - 2026-10-28 (agente D): persistir la reserva `REJECTED` requiere transacción `REQUIRES_NEW`
   (el rollback del 409 borraría el registro); por eso el pool Hikari sube a 40 SOLO en el test
   multihilo de sales (cada hilo perdedor usa 2 conexiones).
+- 2026-10-28: `docker compose up` puede reventar con "port is already allocated" si otro proyecto
+  usa el puerto (aquí `veni-postgres` en 5432). Solución aplicada: mapear nuestro PG a **5433**
+  en `infra/docker-compose.yml` y en los defaults `DB_URL` de los 3 servicios. No parar proyectos ajenos.
+- 2026-10-28 (agente F): convenciones admin — `core/services/admin.service.ts` (escrituras),
+  cancelación de partido en cliente secuencia `PUT /partidos/{id}/cancelar` → `POST
+  /api/sales/reservas/cancelar-por-partido/{id}` con aviso de reintento si sales falla, y el 409
+  de `cupo < vendidos` se muestra SIEMPRE con `mensajeApi()` (el backend es el que valida; no
+  precuentear en cliente). `estado` se envía solo en PUT, nunca en POST de partido.
